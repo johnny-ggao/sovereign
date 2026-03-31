@@ -1,0 +1,28 @@
+# Go
+server/bin/
+server/coverage.out
+server/tmp/
+server/vendor/
+
+# Node / Next.js
+front/node_modules/
+front/.next/
+front/out/
+
+# Environment
+.env
+.env.local
+.env*.local
+
+# IDE
+.idea/
+.vscode/
+*.swp
+*.swo
+
+# Data volumes
+deployments/data/
+/data/
+
+# OS
+.DS_Store

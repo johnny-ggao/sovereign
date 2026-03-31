@@ -1,0 +1,138 @@
+@import "tailwindcss";
+@import "tw-animate-css";
+@import "shadcn/tailwind.css";
+
+@custom-variant dark (&:is(.dark *));
+
+@theme inline {
+  --color-background: var(--background);
+  --color-foreground: var(--foreground);
+  --font-sans: var(--font-sans);
+  --font-mono: var(--font-geist-mono);
+  --font-heading: var(--font-sans);
+  --color-sidebar-ring: var(--sidebar-ring);
+  --color-sidebar-border: var(--sidebar-border);
+  --color-sidebar-accent-foreground: var(--sidebar-accent-foreground);
+  --color-sidebar-accent: var(--sidebar-accent);
+  --color-sidebar-primary-foreground: var(--sidebar-primary-foreground);
+  --color-sidebar-primary: var(--sidebar-primary);
+  --color-sidebar-foreground: var(--sidebar-foreground);
+  --color-sidebar: var(--sidebar);
+  --color-chart-5: var(--chart-5);
+  --color-chart-4: var(--chart-4);
+  --color-chart-3: var(--chart-3);
+  --color-chart-2: var(--chart-2);
+  --color-chart-1: var(--chart-1);
+  --color-ring: var(--ring);
+  --color-input: var(--input);
+  --color-border: var(--border);
+  --color-destructive: var(--destructive);
+  --color-accent-foreground: var(--accent-foreground);
+  --color-accent: var(--accent);
+  --color-muted-foreground: var(--muted-foreground);
+  --color-muted: var(--muted);
+  --color-secondary-foreground: var(--secondary-foreground);
+  --color-secondary: var(--secondary);
+  --color-primary-foreground: var(--primary-foreground);
+  --color-primary: var(--primary);
+  --color-popover-foreground: var(--popover-foreground);
+  --color-popover: var(--popover);
+  --color-card-foreground: var(--card-foreground);
+  --color-card: var(--card);
+  --color-success: var(--success);
+  --color-success-foreground: var(--success-foreground);
+  --color-warning: var(--warning);
+  --color-glass: var(--glass);
+  --color-glass-light: var(--glass-light);
+  --radius-sm: calc(var(--radius) * 0.6);
+  --radius-md: calc(var(--radius) * 0.8);
+  --radius-lg: var(--radius);
+  --radius-xl: calc(var(--radius) * 1.4);
+  --radius-2xl: calc(var(--radius) * 1.8);
+  --radius-3xl: calc(var(--radius) * 2.2);
+  --radius-4xl: calc(var(--radius) * 2.6);
+}
+
+/* Sovereign Obsidian — Dark-first theme */
+:root {
+  --background: #0c1322;
+  --foreground: #dce2f7;
+  --card: #191f2f;
+  --card-foreground: #dce2f7;
+  --popover: #232a3a;
+  --popover-foreground: #dce2f7;
+  --primary: #adc6ff;
+  --primary-foreground: #002e6a;
+  --secondary: #191f2f;
+  --secondary-foreground: #dce2f7;
+  --success: #3fe397;
+  --success-foreground: #003920;
+  --muted: #141b2b;
+  --muted-foreground: #c2c6d6;
+  --accent: #2e3545;
+  --accent-foreground: #dce2f7;
+  --destructive: #ff5451;
+  --warning: #ffb3ad;
+  --border: rgba(66, 71, 84, 0.15);
+  --input: #070e1d;
+  --ring: #4d8eff;
+  --glass: rgba(46, 53, 69, 0.4);
+  --glass-light: rgba(25, 31, 47, 0.7);
+  --chart-1: #adc6ff;
+  --chart-2: #3fe397;
+  --chart-3: #4d8eff;
+  --chart-4: #ff5451;
+  --chart-5: #c2c6d6;
+  --radius: 0.75rem;
+  --sidebar: #141b2b;
+  --sidebar-foreground: #dce2f7;
+  --sidebar-primary: #adc6ff;
+  --sidebar-primary-foreground: #002e6a;
+  --sidebar-accent: #232a3a;
+  --sidebar-accent-foreground: #dce2f7;
+  --sidebar-border: rgba(66, 71, 84, 0.15);
+  --sidebar-ring: #4d8eff;
+}
+
+@layer base {
+  * {
+    @apply border-border outline-ring/50;
+  }
+  body {
+    @apply bg-background text-foreground antialiased;
+  }
+  html {
+    @apply font-sans;
+    color-scheme: dark;
+  }
+}
+
+/* Glass-morphism utilities */
+@layer utilities {
+  .glass {
+    background: rgba(46, 53, 69, 0.4);
+    backdrop-filter: blur(20px);
+    -webkit-backdrop-filter: blur(20px);
+  }
+  .glass-light {
+    background: rgba(25, 31, 47, 0.7);
+    backdrop-filter: blur(12px);
+    -webkit-backdrop-filter: blur(12px);
+  }
+  .glow-bg {
+    background-image: radial-gradient(ellipse at 20% 0%, rgba(77, 142, 255, 0.08) 0%, transparent 60%);
+  }
+  .glow-bg-green {
+    background-image: radial-gradient(ellipse at 80% 0%, rgba(63, 227, 151, 0.06) 0%, transparent 60%);
+  }
+  .glow-bg-center {
+    background-image: radial-gradient(ellipse at 50% 0%, rgba(77, 142, 255, 0.1) 0%, transparent 50%);
+  }
+  .pulse-glow {
+    animation: pulse-glow 2s ease-in-out infinite;
+  }
+  @keyframes pulse-glow {
+    0%, 100% { box-shadow: 0 0 20px rgba(63, 227, 151, 0.1); }
+    50% { box-shadow: 0 0 40px rgba(63, 227, 151, 0.2); }
+  }
+}

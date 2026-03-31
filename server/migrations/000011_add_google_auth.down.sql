@@ -1,0 +1,4 @@
+DROP INDEX IF EXISTS idx_users_google_id;
+ALTER TABLE users DROP COLUMN IF EXISTS avatar_url;
+ALTER TABLE users DROP COLUMN IF EXISTS google_id;
+ALTER TABLE users ALTER COLUMN password_hash SET NOT NULL;

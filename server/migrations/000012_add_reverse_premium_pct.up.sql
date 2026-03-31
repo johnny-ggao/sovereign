@@ -1,0 +1,1 @@
+ALTER TABLE premium_ticks ADD COLUMN IF NOT EXISTS reverse_premium_pct DECIMAL(8,4) NOT NULL DEFAULT 0;

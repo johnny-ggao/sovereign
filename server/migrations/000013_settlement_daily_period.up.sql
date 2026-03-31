@@ -1,0 +1,1 @@
+ALTER TABLE settlements ALTER COLUMN period TYPE VARCHAR(10);
