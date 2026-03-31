@@ -2,6 +2,7 @@ package worker
 
 import (
 	"context"
+	"fmt"
 	"log/slog"
 	"time"
 
@@ -11,25 +12,28 @@ import (
 )
 
 type PremiumFetcher struct {
-	premiumSvc service.PremiumService
-	krClients  []service.ExchangeClient
-	glClients  []service.ExchangeClient
-	pairs      []string
-	logger     *slog.Logger
+	premiumSvc   service.PremiumService
+	krClients    []service.ExchangeClient
+	glClients    []service.ExchangeClient
+	rateProvider *service.ScolkgRateProvider
+	pairs        []string
+	logger       *slog.Logger
 }
 
 func NewPremiumFetcher(
 	premiumSvc service.PremiumService,
 	krClients []service.ExchangeClient,
 	glClients []service.ExchangeClient,
+	rateProvider *service.ScolkgRateProvider,
 	logger *slog.Logger,
 ) *PremiumFetcher {
 	return &PremiumFetcher{
-		premiumSvc: premiumSvc,
-		krClients:  krClients,
-		glClients:  glClients,
-		pairs:      []string{model.PairBTCKRW, model.PairETHKRW, model.PairSOLKRW, model.PairXRPKRW},
-		logger:     logger,
+		premiumSvc:   premiumSvc,
+		krClients:    krClients,
+		glClients:    glClients,
+		rateProvider: rateProvider,
+		pairs:        []string{model.PairBTCKRW, model.PairETHKRW, model.PairSOLKRW, model.PairXRPKRW},
+		logger:       logger,
 	}
 }
 
@@ -97,14 +101,12 @@ type clientError struct{ msg string }
 
 func (e *clientError) Error() string { return e.msg }
 
-func (f *PremiumFetcher) getUSDTKRWRate(ctx context.Context) (decimal.Decimal, error) {
-	for _, client := range f.krClients {
-		ob, err := client.GetOrderBook(ctx, "USDT/KRW")
-		if err == nil {
-			return ob.Bid.Add(ob.Ask).Div(decimal.NewFromInt(2)), nil
-		}
+func (f *PremiumFetcher) getUSDTKRWRate(_ context.Context) (decimal.Decimal, error) {
+	rate := f.rateProvider.Rate()
+	if rate.IsZero() {
+		return decimal.Zero, fmt.Errorf("scolkg rate not available")
 	}
-	return decimal.NewFromFloat(1342.5), nil
+	return rate, nil
 }
 
 func (f *PremiumFetcher) fetchPair(ctx context.Context, pair string, usdtKRW decimal.Decimal) error {

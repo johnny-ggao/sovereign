@@ -62,7 +62,11 @@ func main() {
 		time.Sleep(2 * time.Second)
 	}
 
-	fetcher := worker.NewPremiumFetcher(application.PremiumModule.Service, krClients, glClients, application.Logger)
+	// 启动 scolkg.com 汇率获取
+	rateProvider := service.NewScolkgRateProvider(application.Logger)
+	go rateProvider.Start(appCtx)
+
+	fetcher := worker.NewPremiumFetcher(application.PremiumModule.Service, krClients, glClients, rateProvider, application.Logger)
 	go func() {
 		ticker := time.NewTicker(cfg.Worker.PremiumFetchInterval)
 		defer ticker.Stop()
