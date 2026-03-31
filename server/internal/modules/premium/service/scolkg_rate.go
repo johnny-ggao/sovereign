@@ -105,37 +105,41 @@ func (p *ScolkgRateProvider) fetchRate() (decimal.Decimal, error) {
 	}
 	resp2.Body.Close()
 
-	// 3. 轮询获取数据
-	time.Sleep(500 * time.Millisecond)
-	resp3, err := client.Get(pollURL)
-	if err != nil {
-		return decimal.Zero, fmt.Errorf("poll: %w", err)
+	// 3. 多次轮询直到获取到 usdtprice
+	for attempt := 0; attempt < 5; attempt++ {
+		time.Sleep(time.Duration(500+attempt*300) * time.Millisecond)
+
+		resp3, err := client.Get(pollURL)
+		if err != nil {
+			continue
+		}
+
+		data, _ := io.ReadAll(resp3.Body)
+		resp3.Body.Close()
+		dataStr := string(data)
+
+		// 解析 usdtprice response
+		// 格式: ...42["usdtprice response",1529.405]...
+		idx := strings.Index(dataStr, `"usdtprice response",`)
+		if idx == -1 {
+			continue
+		}
+
+		start := idx + len(`"usdtprice response",`)
+		end := strings.Index(dataStr[start:], "]")
+		if end == -1 {
+			continue
+		}
+
+		rateStr := strings.TrimSpace(dataStr[start : start+end])
+		rate, err := decimal.NewFromString(rateStr)
+		if err != nil {
+			continue
+		}
+
+		return rate, nil
 	}
-	defer resp3.Body.Close()
 
-	data, _ := io.ReadAll(resp3.Body)
-	dataStr := string(data)
-
-	// 4. 解析 usdtprice response
-	// 格式: ...42["usdtprice response",1529.405]...
-	idx := strings.Index(dataStr, `"usdtprice response",`)
-	if idx == -1 {
-		return decimal.Zero, fmt.Errorf("usdtprice not found in response")
-	}
-
-	// 提取数字部分
-	start := idx + len(`"usdtprice response",`)
-	end := strings.Index(dataStr[start:], "]")
-	if end == -1 {
-		return decimal.Zero, fmt.Errorf("parse usdtprice: no closing bracket")
-	}
-
-	rateStr := strings.TrimSpace(dataStr[start : start+end])
-	rate, err := decimal.NewFromString(rateStr)
-	if err != nil {
-		return decimal.Zero, fmt.Errorf("parse rate %q: %w", rateStr, err)
-	}
-
-	return rate, nil
+	return decimal.Zero, fmt.Errorf("usdtprice not found after 5 polling attempts")
 }
 
