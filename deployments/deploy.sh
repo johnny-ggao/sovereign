@@ -7,6 +7,80 @@ COMPOSE_FILE="$SCRIPT_DIR/docker-compose.yml"
 
 cd "$PROJECT_DIR"
 
+# 检查并安装 Docker
+install_docker() {
+  echo "==> Docker not found, installing..."
+  if [ -f /etc/os-release ]; then
+    . /etc/os-release
+    case "$ID" in
+      ubuntu|debian)
+        sudo apt-get update -qq
+        sudo apt-get install -y -qq ca-certificates curl gnupg
+        sudo install -m 0755 -d /etc/apt/keyrings
+        curl -fsSL "https://download.docker.com/linux/$ID/gpg" | sudo gpg --dearmor -o /etc/apt/keyrings/docker.gpg
+        sudo chmod a+r /etc/apt/keyrings/docker.gpg
+        echo "deb [arch=$(dpkg --print-architecture) signed-by=/etc/apt/keyrings/docker.gpg] https://download.docker.com/linux/$ID $(lsb_release -cs) stable" | \
+          sudo tee /etc/apt/sources.list.d/docker.list > /dev/null
+        sudo apt-get update -qq
+        sudo apt-get install -y -qq docker-ce docker-ce-cli containerd.io docker-compose-plugin
+        ;;
+      centos|rhel|fedora|amzn)
+        sudo yum install -y yum-utils
+        sudo yum-config-manager --add-repo https://download.docker.com/linux/centos/docker-ce.repo
+        sudo yum install -y docker-ce docker-ce-cli containerd.io docker-compose-plugin
+        ;;
+      *)
+        echo "Error: unsupported OS ($ID). Please install Docker manually:"
+        echo "  https://docs.docker.com/engine/install/"
+        exit 1
+        ;;
+    esac
+  elif [ "$(uname)" = "Darwin" ]; then
+    echo "Error: please install Docker Desktop for Mac:"
+    echo "  https://docs.docker.com/desktop/install/mac-install/"
+    exit 1
+  else
+    echo "Error: unsupported OS. Please install Docker manually:"
+    echo "  https://docs.docker.com/engine/install/"
+    exit 1
+  fi
+
+  # 启动 Docker 并设置开机自启
+  sudo systemctl start docker 2>/dev/null || true
+  sudo systemctl enable docker 2>/dev/null || true
+
+  # 将当前用户加入 docker 组（免 sudo）
+  if ! groups | grep -q docker; then
+    sudo usermod -aG docker "$USER"
+    echo "==> Added $USER to docker group. You may need to re-login for this to take effect."
+  fi
+
+  echo "==> Docker installed successfully: $(docker --version)"
+}
+
+# 检查 Docker
+if ! command -v docker &>/dev/null; then
+  install_docker
+fi
+
+# 检查 Docker 是否在运行
+if ! docker info &>/dev/null; then
+  echo "==> Starting Docker..."
+  sudo systemctl start docker 2>/dev/null || true
+  sleep 2
+  if ! docker info &>/dev/null; then
+    echo "Error: Docker is not running. Please start Docker and try again."
+    exit 1
+  fi
+fi
+
+# 检查 docker compose
+if ! docker compose version &>/dev/null; then
+  echo "Error: docker compose plugin not found. Please install:"
+  echo "  sudo apt-get install docker-compose-plugin"
+  exit 1
+fi
+
 # 检查 .env
 if [ ! -f .env ]; then
   echo "Error: .env file not found. Copy from .env.example and fill in values:"
