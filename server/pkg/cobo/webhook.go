@@ -38,15 +38,35 @@ type CoboV2WebhookEvent struct {
 	DataType        string `json:"data_type"`
 }
 
+// CoboV2WebhookEnvelope 外层信封结构
+type CoboV2WebhookEnvelope struct {
+	EventID          string          `json:"event_id"`
+	Type             string          `json:"type"` // wallets.transaction.created, etc.
+	Data             json.RawMessage `json:"data"`
+	CreatedTimestamp int64           `json:"created_timestamp"`
+}
+
 // ParseWebhookPayload 将 Cobo v2 webhook JSON 转为内部 WebhookPayload
 func ParseWebhookPayload(body []byte) (*WebhookPayload, error) {
+	// 先尝试解析外层信封
+	var envelope CoboV2WebhookEnvelope
+	if err := json.Unmarshal(body, &envelope); err != nil {
+		return nil, fmt.Errorf("parse cobo webhook envelope: %w", err)
+	}
+
+	// 如果有 data 字段，从 data 中解析交易详情
+	eventData := body
+	if envelope.Data != nil && len(envelope.Data) > 0 {
+		eventData = envelope.Data
+	}
+
 	var event CoboV2WebhookEvent
-	if err := json.Unmarshal(body, &event); err != nil {
-		return nil, fmt.Errorf("parse cobo webhook: %w", err)
+	if err := json.Unmarshal(eventData, &event); err != nil {
+		return nil, fmt.Errorf("parse cobo webhook data: %w", err)
 	}
 
 	if event.DataType != "Transaction" && event.TransactionID == "" {
-		return nil, fmt.Errorf("not a transaction webhook event")
+		return nil, fmt.Errorf("not a transaction webhook event (type: %s)", envelope.Type)
 	}
 
 	// 类型映射: Deposit -> deposit, Withdrawal -> withdraw
