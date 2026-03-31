@@ -67,13 +67,13 @@ type TransactionResp struct {
 // WebhookPayload Cobo Webhook 回调数据结构
 type WebhookPayload struct {
 	ID          string          `json:"id"`
-	Type        string          `json:"type"` // deposit, withdraw
-	Status      string          `json:"status"`
-	Currency    string          `json:"currency"`
+	Type        string          `json:"type"`     // deposit, withdraw
+	Status      string          `json:"status"`   // pending, processing, confirmed, failed
+	Currency    string          `json:"currency"` // USDT
+	Network     string          `json:"network"`  // BEP20, TRC20
 	Amount      decimal.Decimal `json:"amount"`
 	Fee         decimal.Decimal `json:"fee"`
 	TxHash      string          `json:"tx_hash"`
 	Address     string          `json:"address"`
 	RequestID   string          `json:"request_id"`
-	ConfirmedAt *int64          `json:"confirmed_at"`
 }

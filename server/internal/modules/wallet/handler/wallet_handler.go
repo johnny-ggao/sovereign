@@ -1,9 +1,9 @@
 package handler
 
 import (
-	"encoding/json"
 	"errors"
 	"io"
+	"log/slog"
 	"net/http"
 
 	"github.com/gin-gonic/gin"
@@ -159,14 +159,18 @@ func (h *WalletHandler) HandleWebhook(c *gin.Context) {
 		return
 	}
 
-	// body 已被 io.ReadAll 消费，用 json.Unmarshal 代替 ShouldBindJSON
-	var payload cobo.WebhookPayload
-	if err := json.Unmarshal(body, &payload); err != nil {
+	// 记录原始 webhook payload 用于调试
+	slog.Info("webhook received", slog.String("body", string(body)))
+
+	// 解析 Cobo WaaS 2.0 webhook 格式
+	payload, err := cobo.ParseWebhookPayload(body)
+	if err != nil {
+		slog.Error("parse webhook failed", slog.String("error", err.Error()), slog.String("body", string(body)))
 		response.Fail(c, http.StatusBadRequest, "VALIDATION_ERROR", err.Error())
 		return
 	}
 
-	if err := h.walletSvc.HandleWebhook(c.Request.Context(), payload); err != nil {
+	if err := h.walletSvc.HandleWebhook(c.Request.Context(), *payload); err != nil {
 		response.Fail(c, http.StatusInternalServerError, "WEBHOOK_ERROR", "failed to process webhook")
 		return
 	}
