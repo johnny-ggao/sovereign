@@ -83,12 +83,8 @@ func (c *BybitWSClient) connect(ctx context.Context) error {
 
 	c.logger.Info("bybit ws connected")
 
-	go func() {
-		<-ctx.Done()
-		conn.Close()
-	}()
-
-	// Bybit 需要每 20 秒发心跳
+	go func() { <-ctx.Done(); conn.Close() }()
+	go PingLoop(ctx, conn, c.cache, 10*time.Second)
 	go c.heartbeat(ctx, conn)
 
 	for {

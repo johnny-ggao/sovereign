@@ -90,7 +90,7 @@
     "spread": "Spread",
     "avgPremium": "Average Kimchi Premium",
     "avgDesc": "Current arbitrage gap between Korean exchanges and Global markets",
-    "networkLatency": "Network Latency",
+    "networkLatency": "Network RTT",
     "activeStreams": "Active Streams",
     "pairs": "pairs",
     "realtimeMonitor": "Real-Time Arbitrage Monitor",

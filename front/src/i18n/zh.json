@@ -90,7 +90,7 @@
     "spread": "价差",
     "avgPremium": "平均泡菜溢价",
     "avgDesc": "韩国交易所与全球市场的当前套利差距",
-    "networkLatency": "网络延迟",
+    "networkLatency": "网络延迟 (RTT)",
     "activeStreams": "活跃数据流",
     "pairs": "交易对",
     "realtimeMonitor": "实时套利监控",

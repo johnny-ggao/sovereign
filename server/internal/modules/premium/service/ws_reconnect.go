@@ -4,6 +4,8 @@ import (
 	"context"
 	"math/rand/v2"
 	"time"
+
+	"github.com/gorilla/websocket"
 )
 
 // Backoff 指数退避 + 抖动
@@ -45,6 +47,34 @@ func (b *Backoff) Next() time.Duration {
 
 func (b *Backoff) Reset() {
 	b.attempt = 0
+}
+
+// PingLoop 定期发 WebSocket ping 并测量 RTT，结果写入 cache
+func PingLoop(ctx context.Context, conn *websocket.Conn, cache *OrderBookCache, interval time.Duration) {
+	ticker := time.NewTicker(interval)
+	defer ticker.Stop()
+
+	conn.SetPongHandler(func(appData string) error {
+		sent, err := time.Parse(time.RFC3339Nano, appData)
+		if err == nil {
+			cache.SetRTT(time.Since(sent))
+		}
+		return nil
+	})
+
+	for {
+		select {
+		case <-ctx.Done():
+			return
+		case <-ticker.C:
+			deadline := time.Now().Add(5 * time.Second)
+			conn.SetWriteDeadline(deadline)
+			err := conn.WriteMessage(websocket.PingMessage, []byte(time.Now().Format(time.RFC3339Nano)))
+			if err != nil {
+				return
+			}
+		}
+	}
 }
 
 // SleepWithContext 可被 context 取消的 sleep

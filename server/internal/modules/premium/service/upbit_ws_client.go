@@ -79,12 +79,8 @@ func (c *UpbitWSClient) connect(ctx context.Context, markets []string) error {
 
 	c.logger.Info("upbit ws connected", slog.Int("markets", len(markets)))
 
-	doneCh := make(chan struct{})
-	go func() {
-		<-ctx.Done()
-		conn.Close()
-		close(doneCh)
-	}()
+	go func() { <-ctx.Done(); conn.Close() }()
+	go PingLoop(ctx, conn, c.cache, 10*time.Second)
 
 	for {
 		_, msg, err := conn.ReadMessage()

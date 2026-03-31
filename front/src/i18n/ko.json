@@ -90,7 +90,7 @@
     "spread": "스프레드",
     "avgPremium": "평균 김치프리미엄",
     "avgDesc": "한국 거래소와 글로벌 시장 간 현재 차익거래 갭",
-    "networkLatency": "네트워크 지연",
+    "networkLatency": "네트워크 RTT",
     "activeStreams": "활성 스트림",
     "pairs": "거래쌍",
     "realtimeMonitor": "실시간 차익거래 모니터",

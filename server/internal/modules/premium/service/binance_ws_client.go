@@ -84,10 +84,8 @@ func (c *BinanceWSClient) connect(ctx context.Context) error {
 
 	c.logger.Info("binance ws connected")
 
-	go func() {
-		<-ctx.Done()
-		conn.Close()
-	}()
+	go func() { <-ctx.Done(); conn.Close() }()
+	go PingLoop(ctx, conn, c.cache, 10*time.Second)
 
 	for {
 		_, msg, err := conn.ReadMessage()

@@ -13,7 +13,7 @@ type OrderBookCache struct {
 	mu      sync.RWMutex
 	books   map[string]*OrderBookTop
 	ts      map[string]time.Time
-	latency time.Duration // 最近一次消息的处理延迟
+	rtt     time.Duration
 }
 
 func NewOrderBookCache() *OrderBookCache {
@@ -25,12 +25,8 @@ func NewOrderBookCache() *OrderBookCache {
 
 func (c *OrderBookCache) Update(pair string, ob *OrderBookTop) {
 	c.mu.Lock()
-	now := time.Now()
-	if prev, ok := c.ts[pair]; ok {
-		c.latency = now.Sub(prev)
-	}
 	c.books[pair] = ob
-	c.ts[pair] = now
+	c.ts[pair] = time.Now()
 	c.mu.Unlock()
 }
 
@@ -50,9 +46,16 @@ func (c *OrderBookCache) Get(pair string) (*OrderBookTop, error) {
 	return ob, nil
 }
 
-// Latency 返回最近一次消息间隔（反映 WS 推送频率/延迟）
+// SetRTT 设置 ping/pong 测量的 RTT
+func (c *OrderBookCache) SetRTT(d time.Duration) {
+	c.mu.Lock()
+	c.rtt = d
+	c.mu.Unlock()
+}
+
+// Latency 返回 ping/pong RTT
 func (c *OrderBookCache) Latency() time.Duration {
 	c.mu.RLock()
 	defer c.mu.RUnlock()
-	return c.latency
+	return c.rtt
 }
