@@ -3,7 +3,13 @@
 import { useEffect, useRef, useState, useMemo, useCallback } from "react"
 import type { PremiumTick } from "@/types/api"
 
-const WS_URL = process.env.NEXT_PUBLIC_WS_URL || "ws://localhost:8080/ws/v1/premium"
+function getWSURL() {
+  if (process.env.NEXT_PUBLIC_WS_URL) return process.env.NEXT_PUBLIC_WS_URL
+  if (typeof window === "undefined") return "ws://localhost:8080/ws/v1/premium"
+  const proto = window.location.protocol === "https:" ? "wss:" : "ws:"
+  return `${proto}//${window.location.host}/ws/v1/premium`
+}
+const WS_URL = typeof window !== "undefined" ? getWSURL() : "ws://localhost:8080/ws/v1/premium"
 
 interface UsePremiumWSOptions {
   pairs?: string[]
