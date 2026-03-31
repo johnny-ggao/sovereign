@@ -372,12 +372,19 @@ func (s *walletService) GetTransaction(ctx context.Context, userID, txID string)
 }
 
 func (s *walletService) HandleWebhook(ctx context.Context, payload cobo.WebhookPayload) error {
+	// 充值没有 request_id，直接走充值处理
+	if payload.Type == "deposit" {
+		return s.handleDepositWebhook(ctx, payload)
+	}
+
+	if payload.RequestID == "" {
+		s.logger.Warn("webhook with empty request_id, skip", slog.String("type", payload.Type), slog.String("id", payload.ID))
+		return nil
+	}
+
 	tx, err := s.txRepo.FindByExternalID(ctx, payload.RequestID)
 	if err != nil {
 		if errors.Is(err, gorm.ErrRecordNotFound) {
-			if payload.Type == "deposit" {
-				return s.handleDepositWebhook(ctx, payload)
-			}
 			return nil
 		}
 		return err
@@ -443,6 +450,13 @@ func (s *walletService) HandleWebhook(ctx context.Context, payload cobo.WebhookP
 }
 
 func (s *walletService) handleDepositWebhook(ctx context.Context, payload cobo.WebhookPayload) error {
+	s.logger.Info("processing deposit webhook",
+		slog.String("cobo_id", payload.ID),
+		slog.String("address", payload.Address),
+		slog.String("amount", payload.Amount.String()),
+		slog.String("status", payload.Status),
+	)
+
 	// 通过充值地址反查用户
 	depositAddr, err := s.addrRepo.FindDepositAddressByAddress(ctx, payload.Address)
 	if err != nil {
@@ -453,6 +467,26 @@ func (s *walletService) handleDepositWebhook(ctx context.Context, payload cobo.W
 		return nil
 	}
 
+	// 检查是否已处理过（幂等）
+	existingTx, _ := s.txRepo.FindByExternalID(ctx, payload.ID)
+	if existingTx != nil {
+		// 已有记录，只更新状态
+		if existingTx.Status != payload.Status {
+			s.txRepo.UpdateStatus(ctx, existingTx.ID, payload.Status, payload.TxHash)
+			s.logger.Info("deposit status updated",
+				slog.String("tx_id", existingTx.ID),
+				slog.String("old_status", existingTx.Status),
+				slog.String("new_status", payload.Status),
+			)
+		}
+		// 如果新状态是 confirmed 且之前不是，更新余额
+		if payload.Status == "confirmed" && existingTx.Status != "confirmed" {
+			return s.creditDeposit(ctx, depositAddr.UserID, payload)
+		}
+		return nil
+	}
+
+	// 新充值记录
 	tx := &model.Transaction{
 		UserID:     depositAddr.UserID,
 		Type:       model.TxTypeDeposit,
@@ -467,37 +501,50 @@ func (s *walletService) handleDepositWebhook(ctx context.Context, payload cobo.W
 	}
 
 	if err := s.txRepo.Create(ctx, tx); err != nil {
+		s.logger.Error("create deposit tx failed", slog.String("error", err.Error()))
 		return err
 	}
 
+	s.logger.Info("deposit tx created",
+		slog.String("tx_id", tx.ID),
+		slog.String("user_id", depositAddr.UserID),
+		slog.String("amount", payload.Amount.String()),
+		slog.String("status", payload.Status),
+	)
+
 	// 充值确认后更新钱包余额
 	if payload.Status == "confirmed" {
-		wallet, err := s.walletRepo.FindOrCreate(ctx, depositAddr.UserID, payload.Currency)
-		if err != nil {
-			return fmt.Errorf("find wallet for deposit: %w", err)
-		}
-
-		newAvailable := wallet.Available.Add(payload.Amount)
-		if err := s.walletRepo.UpdateBalance(ctx, wallet.ID, newAvailable, wallet.InOperation, wallet.Frozen); err != nil {
-			return fmt.Errorf("update balance for deposit: %w", err)
-		}
-
-		s.eventBus.Publish(ctx, events.Event{
-			Type: events.DepositConfirmed,
-			Payload: map[string]string{
-				"user_id":        depositAddr.UserID,
-				"transaction_id": tx.ID,
-				"currency":       payload.Currency,
-				"amount":         payload.Amount.String(),
-			},
-		})
-
-		s.logger.Info("deposit confirmed",
-			slog.String("user_id", depositAddr.UserID),
-			slog.String("currency", payload.Currency),
-			slog.String("amount", payload.Amount.String()),
-		)
+		return s.creditDeposit(ctx, depositAddr.UserID, payload)
 	}
+
+	return nil
+}
+
+func (s *walletService) creditDeposit(ctx context.Context, userID string, payload cobo.WebhookPayload) error {
+	wallet, err := s.walletRepo.FindOrCreate(ctx, userID, payload.Currency)
+	if err != nil {
+		return fmt.Errorf("find wallet for deposit: %w", err)
+	}
+
+	newAvailable := wallet.Available.Add(payload.Amount)
+	if err := s.walletRepo.UpdateBalance(ctx, wallet.ID, newAvailable, wallet.InOperation, wallet.Frozen); err != nil {
+		return fmt.Errorf("update balance for deposit: %w", err)
+	}
+
+	s.eventBus.Publish(ctx, events.Event{
+		Type: events.DepositConfirmed,
+		Payload: map[string]string{
+			"user_id":  userID,
+			"currency": payload.Currency,
+			"amount":   payload.Amount.String(),
+		},
+	})
+
+	s.logger.Info("deposit confirmed and credited",
+		slog.String("user_id", userID),
+		slog.String("currency", payload.Currency),
+		slog.String("amount", payload.Amount.String()),
+	)
 
 	return nil
 }
