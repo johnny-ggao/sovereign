@@ -1,9 +1,13 @@
 package cobo
 
 import (
+	"bufio"
 	"context"
 	"fmt"
 	"net/http"
+	"os"
+	"path/filepath"
+	"strings"
 
 	"github.com/shopspring/decimal"
 
@@ -28,8 +32,27 @@ type Options struct {
 }
 
 func NewCoboProvider(opts Options) (WalletProvider, error) {
+	// 配置为空时从 ~/.cobo/config.toml 读取
+	if opts.APISecret == "" || opts.WalletID == "" {
+		fileOpts, err := loadCoboConfigFile()
+		if err == nil {
+			if opts.APISecret == "" {
+				opts.APISecret = fileOpts.APISecret
+			}
+			if opts.APIPubKey == "" {
+				opts.APIPubKey = fileOpts.APIPubKey
+			}
+			if opts.WalletID == "" {
+				opts.WalletID = fileOpts.WalletID
+			}
+			if opts.BaseURL == "" {
+				opts.BaseURL = fileOpts.BaseURL
+			}
+		}
+	}
+
 	if opts.APISecret == "" {
-		return nil, fmt.Errorf("cobo api_secret is required")
+		return nil, fmt.Errorf("cobo api_secret is required (set in config or ~/.cobo/config.toml)")
 	}
 
 	env := coboWaas2.DevEnv
@@ -51,6 +74,55 @@ func NewCoboProvider(opts Options) (WalletProvider, error) {
 		walletID:      opts.WalletID,
 		webhookPubKey: opts.WebhookPubKey,
 	}, nil
+}
+
+// loadCoboConfigFile 从 ~/.cobo/config.toml 读取密钥配置
+func loadCoboConfigFile() (*Options, error) {
+	home, err := os.UserHomeDir()
+	if err != nil {
+		return nil, err
+	}
+
+	path := filepath.Join(home, ".cobo", "config.toml")
+	f, err := os.Open(path)
+	if err != nil {
+		return nil, err
+	}
+	defer f.Close()
+
+	opts := &Options{}
+	scanner := bufio.NewScanner(f)
+	for scanner.Scan() {
+		line := strings.TrimSpace(scanner.Text())
+		if line == "" || strings.HasPrefix(line, "#") || strings.HasPrefix(line, "[") {
+			continue
+		}
+
+		parts := strings.SplitN(line, "=", 2)
+		if len(parts) != 2 {
+			continue
+		}
+
+		key := strings.TrimSpace(parts[0])
+		value := strings.Trim(strings.TrimSpace(parts[1]), "\"'")
+
+		switch key {
+		case "api_secret", "secret", "private_key":
+			opts.APISecret = value
+		case "api_key", "public_key":
+			opts.APIPubKey = value
+		case "wallet_id":
+			opts.WalletID = value
+		case "env", "environment":
+			if value == "production" || value == "prod" {
+				opts.BaseURL = "https://api.cobo.com"
+			} else {
+				opts.BaseURL = "https://api.dev.cobo.com"
+			}
+		}
+	}
+
+	return opts, scanner.Err()
 }
 
 // --- 币种/网络映射 ---
