@@ -61,29 +61,29 @@ func (c *BithumbWSClient) Start(ctx context.Context) error {
 }
 
 func (c *BithumbWSClient) connect(ctx context.Context) error {
-	conn, _, err := websocket.DefaultDialer.DialContext(ctx, bithumbWSURL, nil)
+	raw, _, err := websocket.DefaultDialer.DialContext(ctx, bithumbWSURL, nil)
 	if err != nil {
 		return fmt.Errorf("dial: %w", err)
 	}
-	defer conn.Close()
+	defer raw.Close()
+	conn := NewWSConn(raw)
 
-	// Bithumb 订阅 orderbookdepth
 	sub := map[string]interface{}{
 		"type":      "orderbookdepth",
 		"symbols":   []string{"BTC_KRW", "ETH_KRW", "SOL_KRW", "XRP_KRW"},
 		"tickTypes": []string{"1H"},
 	}
-	if err := conn.WriteJSON(sub); err != nil {
+	if err := conn.WriteJSONSafe(sub); err != nil {
 		return fmt.Errorf("subscribe: %w", err)
 	}
 
 	c.logger.Info("bithumb ws connected")
 
-	go func() { <-ctx.Done(); conn.Close() }()
+	go func() { <-ctx.Done(); raw.Close() }()
 	go PingLoop(ctx, conn, c.cache, 10*time.Second)
 
 	for {
-		_, msg, err := conn.ReadMessage()
+		_, msg, err := raw.ReadMessage()
 		if err != nil {
 			return fmt.Errorf("read: %w", err)
 		}

@@ -61,13 +61,13 @@ func (c *BybitWSClient) Start(ctx context.Context) error {
 }
 
 func (c *BybitWSClient) connect(ctx context.Context) error {
-	conn, _, err := websocket.DefaultDialer.DialContext(ctx, bybitWSURL, nil)
+	raw, _, err := websocket.DefaultDialer.DialContext(ctx, bybitWSURL, nil)
 	if err != nil {
 		return fmt.Errorf("dial: %w", err)
 	}
-	defer conn.Close()
+	defer raw.Close()
+	conn := NewWSConn(raw)
 
-	// 订阅 level 1 orderbook（只有 best bid/ask）
 	sub := map[string]interface{}{
 		"op": "subscribe",
 		"args": []string{
@@ -77,18 +77,18 @@ func (c *BybitWSClient) connect(ctx context.Context) error {
 			"orderbook.1.XRPUSDT",
 		},
 	}
-	if err := conn.WriteJSON(sub); err != nil {
+	if err := conn.WriteJSONSafe(sub); err != nil {
 		return fmt.Errorf("subscribe: %w", err)
 	}
 
 	c.logger.Info("bybit ws connected")
 
-	go func() { <-ctx.Done(); conn.Close() }()
+	go func() { <-ctx.Done(); raw.Close() }()
 	go PingLoop(ctx, conn, c.cache, 10*time.Second)
 	go c.heartbeat(ctx, conn)
 
 	for {
-		_, msg, err := conn.ReadMessage()
+		_, msg, err := raw.ReadMessage()
 		if err != nil {
 			return fmt.Errorf("read: %w", err)
 		}
@@ -97,7 +97,7 @@ func (c *BybitWSClient) connect(ctx context.Context) error {
 	}
 }
 
-func (c *BybitWSClient) heartbeat(ctx context.Context, conn *websocket.Conn) {
+func (c *BybitWSClient) heartbeat(ctx context.Context, conn *WSConn) {
 	ticker := time.NewTicker(20 * time.Second)
 	defer ticker.Stop()
 
@@ -106,7 +106,7 @@ func (c *BybitWSClient) heartbeat(ctx context.Context, conn *websocket.Conn) {
 		case <-ctx.Done():
 			return
 		case <-ticker.C:
-			if err := conn.WriteJSON(map[string]string{"op": "ping"}); err != nil {
+			if err := conn.WriteJSONSafe(map[string]string{"op": "ping"}); err != nil {
 				return
 			}
 		}

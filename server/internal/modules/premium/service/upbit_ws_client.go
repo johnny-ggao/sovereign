@@ -62,28 +62,29 @@ func (c *UpbitWSClient) Start(ctx context.Context) error {
 }
 
 func (c *UpbitWSClient) connect(ctx context.Context, markets []string) error {
-	conn, _, err := websocket.DefaultDialer.DialContext(ctx, upbitWSURL, nil)
+	raw, _, err := websocket.DefaultDialer.DialContext(ctx, upbitWSURL, nil)
 	if err != nil {
 		return fmt.Errorf("dial: %w", err)
 	}
-	defer conn.Close()
+	defer raw.Close()
+	conn := NewWSConn(raw)
 
 	// 订阅
 	sub := []interface{}{
 		map[string]string{"ticket": "sovereign"},
 		map[string]interface{}{"type": "orderbook", "codes": markets},
 	}
-	if err := conn.WriteJSON(sub); err != nil {
+	if err := conn.WriteJSONSafe(sub); err != nil {
 		return fmt.Errorf("subscribe: %w", err)
 	}
 
 	c.logger.Info("upbit ws connected", slog.Int("markets", len(markets)))
 
-	go func() { <-ctx.Done(); conn.Close() }()
+	go func() { <-ctx.Done(); raw.Close() }()
 	go PingLoop(ctx, conn, c.cache, 10*time.Second)
 
 	for {
-		_, msg, err := conn.ReadMessage()
+		_, msg, err := raw.ReadMessage()
 		if err != nil {
 			return fmt.Errorf("read: %w", err)
 		}

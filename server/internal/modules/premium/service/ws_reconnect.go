@@ -3,6 +3,7 @@ package service
 import (
 	"context"
 	"math/rand/v2"
+	"sync"
 	"time"
 
 	"github.com/gorilla/websocket"
@@ -49,8 +50,31 @@ func (b *Backoff) Reset() {
 	b.attempt = 0
 }
 
+// WSConn 封装 websocket.Conn，提供并发安全的写操作
+type WSConn struct {
+	*websocket.Conn
+	mu sync.Mutex
+}
+
+func NewWSConn(conn *websocket.Conn) *WSConn {
+	return &WSConn{Conn: conn}
+}
+
+func (c *WSConn) WriteJSONSafe(v interface{}) error {
+	c.mu.Lock()
+	defer c.mu.Unlock()
+	return c.Conn.WriteJSON(v)
+}
+
+func (c *WSConn) WritePingSafe(data []byte) error {
+	c.mu.Lock()
+	defer c.mu.Unlock()
+	c.Conn.SetWriteDeadline(time.Now().Add(5 * time.Second))
+	return c.Conn.WriteMessage(websocket.PingMessage, data)
+}
+
 // PingLoop 定期发 WebSocket ping 并测量 RTT，结果写入 cache
-func PingLoop(ctx context.Context, conn *websocket.Conn, cache *OrderBookCache, interval time.Duration) {
+func PingLoop(ctx context.Context, conn *WSConn, cache *OrderBookCache, interval time.Duration) {
 	ticker := time.NewTicker(interval)
 	defer ticker.Stop()
 
@@ -67,10 +91,7 @@ func PingLoop(ctx context.Context, conn *websocket.Conn, cache *OrderBookCache, 
 		case <-ctx.Done():
 			return
 		case <-ticker.C:
-			deadline := time.Now().Add(5 * time.Second)
-			conn.SetWriteDeadline(deadline)
-			err := conn.WriteMessage(websocket.PingMessage, []byte(time.Now().Format(time.RFC3339Nano)))
-			if err != nil {
+			if err := conn.WritePingSafe([]byte(time.Now().Format(time.RFC3339Nano))); err != nil {
 				return
 			}
 		}

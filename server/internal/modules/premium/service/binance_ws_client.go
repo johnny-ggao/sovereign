@@ -61,13 +61,13 @@ func (c *BinanceWSClient) Start(ctx context.Context) error {
 }
 
 func (c *BinanceWSClient) connect(ctx context.Context) error {
-	conn, _, err := websocket.DefaultDialer.DialContext(ctx, binanceWSURL, nil)
+	raw, _, err := websocket.DefaultDialer.DialContext(ctx, binanceWSURL, nil)
 	if err != nil {
 		return fmt.Errorf("dial: %w", err)
 	}
-	defer conn.Close()
+	defer raw.Close()
+	conn := NewWSConn(raw)
 
-	// 订阅 depth5 (best 5 levels)
 	sub := map[string]interface{}{
 		"method": "SUBSCRIBE",
 		"params": []string{
@@ -78,17 +78,17 @@ func (c *BinanceWSClient) connect(ctx context.Context) error {
 		},
 		"id": 1,
 	}
-	if err := conn.WriteJSON(sub); err != nil {
+	if err := conn.WriteJSONSafe(sub); err != nil {
 		return fmt.Errorf("subscribe: %w", err)
 	}
 
 	c.logger.Info("binance ws connected")
 
-	go func() { <-ctx.Done(); conn.Close() }()
+	go func() { <-ctx.Done(); raw.Close() }()
 	go PingLoop(ctx, conn, c.cache, 10*time.Second)
 
 	for {
-		_, msg, err := conn.ReadMessage()
+		_, msg, err := raw.ReadMessage()
 		if err != nil {
 			return fmt.Errorf("read: %w", err)
 		}
