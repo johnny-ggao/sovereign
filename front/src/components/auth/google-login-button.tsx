@@ -11,7 +11,7 @@ export function GoogleLoginButton() {
   const googleAuth = useGoogleLogin()
 
   return (
-    <div className="flex justify-center">
+    <div className="flex justify-center [&_iframe]:rounded-full [&_div]:!bg-transparent [&_*]:!border-0">
       <GoogleLogin
         onSuccess={async (credentialResponse) => {
           const idToken = credentialResponse.credential
