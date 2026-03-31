@@ -21,6 +21,8 @@ services:
       - SOVEREIGN_DATABASE_HOST=postgres
       - SOVEREIGN_DATABASE_PORT=5432
       - SOVEREIGN_REDIS_ADDR=redis:6379
+    volumes:
+      - ${CONFIG_DIR:-../server/config}/config.yaml:/app/config/config.yaml:ro
     depends_on:
       postgres:
         condition: service_healthy
@@ -37,6 +39,8 @@ services:
       - SOVEREIGN_DATABASE_HOST=postgres
       - SOVEREIGN_DATABASE_PORT=5432
       - SOVEREIGN_REDIS_ADDR=redis:6379
+    volumes:
+      - ${CONFIG_DIR:-../server/config}/config.yaml:/app/config/config.yaml:ro
     depends_on:
       postgres:
         condition: service_healthy
