@@ -127,13 +127,29 @@ func loadCoboConfigFile() (*Options, error) {
 
 // --- 币种/网络映射 ---
 
+// chainIDMap 用于生成充值地址时的 chain_id
 var chainIDMap = map[string]string{
 	"ERC20": "ETH",
 	"TRC20": "TRON",
 	"BEP20": "BSC_BNB",
 }
 
+// tokenIDMap 用于提现/余额查询时的 token_id（MPC 钱包格式）
+var tokenIDMap = map[string]map[string]string{
+	"USDT": {
+		"ERC20": "ETH_USDT",
+		"TRC20": "TRON_USDT",
+		"BEP20": "BSC_USDT",
+	},
+}
+
 func coinID(currency, network string) string {
+	if tokens, ok := tokenIDMap[currency]; ok {
+		if tokenID, ok := tokens[network]; ok {
+			return tokenID
+		}
+	}
+	// fallback
 	chain, ok := chainIDMap[network]
 	if !ok {
 		chain = currency
