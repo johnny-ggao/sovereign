@@ -171,9 +171,25 @@ net_return      = total_return - performance_fee  -- 用户净收益
 
 ### 认证
 
-内部 API 不需要用户 JWT 认证。`user_id` 自动从 `investment_id` 关联获取。
+内部 API 使用 **API Key + IP 白名单** 双重认证，不需要用户 JWT。
 
-> ⚠️ 生产环境应配置 IP 白名单或 API Key 限制访问。
+**API Key**：通过请求头 `X-Internal-Key` 传递。
+
+```
+X-Internal-Key: your_internal_api_key_here
+```
+
+**IP 白名单**：默认只允许 `127.0.0.1` 和 `172.31.0.0/16` 网段访问。在 `config.yaml` 中配置：
+
+```yaml
+internal:
+  api_key: "your_internal_api_key_here"
+  allowed_ips:
+    - "127.0.0.1"
+    - "172.31.0.0/16"
+```
+
+`user_id` 自动从 `investment_id` 关联获取。
 
 ---
 
@@ -184,6 +200,7 @@ net_return      = total_return - performance_fee  -- 用户净收益
 ```bash
 curl -X POST http://172.31.1.31/api/v1/internal/trades \
   -H "Content-Type: application/json" \
+  -H "X-Internal-Key: your_internal_api_key_here" \
   -d '{
     "investment_id": "e1a6d729-7b64-4605-a71a-d8889b897fd4",
     "pair": "BTC/KRW",
@@ -204,6 +221,7 @@ curl -X POST http://172.31.1.31/api/v1/internal/trades \
 ```bash
 curl -X POST http://172.31.1.31/api/v1/internal/trades/batch \
   -H "Content-Type: application/json" \
+  -H "X-Internal-Key: your_internal_api_key_here" \
   -d '{
     "trades": [
       {
@@ -230,6 +248,8 @@ import requests
 from datetime import datetime
 
 API_URL = "http://172.31.1.31/api/v1/internal/trades"
+API_KEY = "your_internal_api_key_here"
+HEADERS = {"Content-Type": "application/json", "X-Internal-Key": API_KEY}
 
 trade = {
     "investment_id": "e1a6d729-7b64-4605-a71a-d8889b897fd4",
@@ -245,6 +265,6 @@ trade = {
     "executed_at": datetime.utcnow().isoformat() + "Z"
 }
 
-resp = requests.post(API_URL, json=trade)
+resp = requests.post(API_URL, json=trade, headers=HEADERS)
 print(resp.json())
 ```

@@ -61,6 +61,7 @@ func Load() (*Config, error) {
 		target interface{}
 	}{
 		{"cobo", &cfg.Cobo},
+		{"internal", &cfg.Internal},
 		{"worker", &cfg.Worker},
 		{"google", &cfg.Google},
 		{"kyc", &cfg.KYC},

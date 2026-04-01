@@ -11,7 +11,8 @@ type Config struct {
 	Crypto   CryptoConfig   `yaml:"crypto"`
 	Wallet   WalletConfig   `yaml:"wallet"`
 	Cobo     CoboConfig     `yaml:"cobo"`
-	Exchange ExchangeConfig `yaml:"exchange"`
+	Internal InternalAPIConfig `yaml:"internal"`
+	Exchange ExchangeConfig    `yaml:"exchange"`
 	KYC      KYCConfig      `yaml:"kyc"`
 	Google   GoogleConfig   `yaml:"google"`
 	Worker   WorkerConfig   `yaml:"worker"`
@@ -107,6 +108,11 @@ type KYCConfig struct {
 	APIKey    string `yaml:"api_key" env:"KYC_API_KEY"`
 	APISecret string `yaml:"api_secret" env:"KYC_API_SECRET"`
 	BaseURL   string `yaml:"base_url"`
+}
+
+type InternalAPIConfig struct {
+	APIKey     string   `yaml:"api_key"`
+	AllowedIPs []string `yaml:"allowed_ips"`
 }
 
 type WorkerConfig struct {

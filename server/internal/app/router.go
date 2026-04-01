@@ -57,8 +57,10 @@ func SetupRouter(a *App, ctx context.Context) *gin.Engine {
 	webhooks := r.Group("/api/v1")
 	wallet.RegisterWebhookRoutes(webhooks, a.WalletModule.Handler)
 
-	// Internal API（供交易机器人推送套利记录）
-	internal := r.Group("/api/v1/internal")
+	// Internal API（供交易机器人推送套利记录，API Key + IP 白名单）
+	internal := r.Group("/api/v1/internal",
+		middleware.InternalAuth(a.Config.Internal.APIKey, a.Config.Internal.AllowedIPs),
+	)
 	tradelog.RegisterInternalRoutes(internal, a.TradeLogModule.Handler)
 
 	return r
