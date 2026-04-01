@@ -172,8 +172,8 @@ func (p *CoboProvider) Withdraw(ctx context.Context, req WithdrawReq) (*Withdraw
 	tokenID := coinID(req.Currency, req.Network)
 
 	source := coboWaas2.TransferSource{
-		CustodialTransferSource: coboWaas2.NewCustodialTransferSource(
-			coboWaas2.WALLETSUBTYPE_ASSET,
+		MpcTransferSource: coboWaas2.NewMpcTransferSource(
+			coboWaas2.WALLETSUBTYPE_ORG_CONTROLLED,
 			p.walletID,
 		),
 	}
