@@ -1,7 +1,7 @@
 # 套利交易记录 - 内部 API 文档
 
 > 供交易机器人/外部系统推送套利交易记录使用  
-> Base URL: `https://kimchium.com/api/v1/internal`
+> Base URL: `http://172.31.1.31/api/v1/internal`
 
 ---
 
@@ -182,7 +182,7 @@ net_return      = total_return - performance_fee  -- 用户净收益
 ### cURL - 创建单条
 
 ```bash
-curl -X POST https://kimchium.com/api/v1/internal/trades \
+curl -X POST http://172.31.1.31/api/v1/internal/trades \
   -H "Content-Type: application/json" \
   -d '{
     "investment_id": "e1a6d729-7b64-4605-a71a-d8889b897fd4",
@@ -202,7 +202,7 @@ curl -X POST https://kimchium.com/api/v1/internal/trades \
 ### cURL - 批量创建
 
 ```bash
-curl -X POST https://kimchium.com/api/v1/internal/trades/batch \
+curl -X POST http://172.31.1.31/api/v1/internal/trades/batch \
   -H "Content-Type: application/json" \
   -d '{
     "trades": [
@@ -229,7 +229,7 @@ curl -X POST https://kimchium.com/api/v1/internal/trades/batch \
 import requests
 from datetime import datetime
 
-API_URL = "https://kimchium.com/api/v1/internal/trades"
+API_URL = "http://172.31.1.31/api/v1/internal/trades"
 
 trade = {
     "investment_id": "e1a6d729-7b64-4605-a71a-d8889b897fd4",
