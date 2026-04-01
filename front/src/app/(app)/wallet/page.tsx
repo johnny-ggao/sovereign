@@ -1,13 +1,14 @@
 "use client"
 
 import { useState, useEffect } from "react"
-import { useWallets, useTransactions, useDepositAddress, useWhitelistAddresses, useAddWhitelistAddress, useRemoveWhitelistAddress, useWithdraw } from "@/hooks/use-api"
+import { useRouter } from "next/navigation"
+import { useWallets, useTransactions, useDepositAddress, useWhitelistAddresses, useAddWhitelistAddress, useRemoveWhitelistAddress, useWithdraw, useSecurityOverview } from "@/hooks/use-api"
 import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
 import { Label } from "@/components/ui/label"
 import { Badge } from "@/components/ui/badge"
 import { Skeleton } from "@/components/ui/skeleton"
-import { ArrowDownLeft, ArrowUpRight, Copy, Check, Wallet, ChevronRight, Plus, Trash2, Clock } from "lucide-react"
+import { ArrowDownLeft, ArrowUpRight, Copy, Check, Wallet, ChevronRight, Plus, Trash2, Clock, ShieldAlert } from "lucide-react"
 import { QRCodeSVG } from "qrcode.react"
 import { formatCurrency, formatDateTime, shortenAddress } from "@/lib/format"
 import { useT } from "@/hooks/use-t"
@@ -26,7 +27,10 @@ export default function WalletPage() {
   const removeAddress = useRemoveWhitelistAddress()
   const depositAddr = useDepositAddress()
   const withdraw = useWithdraw()
+  const { data: security } = useSecurityOverview()
+  const router = useRouter()
   const t = useT()
+  const twoFAEnabled = security?.two_fa_enabled ?? false
   const [copied, setCopied] = useState("")
   const [showAddForm, setShowAddForm] = useState(false)
   const [newAddr, setNewAddr] = useState({ currency: "USDT", network: "BEP20", address: "", label: "" })
@@ -203,14 +207,27 @@ export default function WalletPage() {
               <Label className="text-xs text-muted-foreground">{t("wallet.withdrawAmount")}</Label>
               <Input placeholder="0.00" value={withdrawForm.amount} onChange={(e) => setWithdrawForm((p) => ({ ...p, amount: e.target.value }))} className="h-10 rounded-lg border-0 bg-input" />
             </div>
-            <div className="space-y-1">
-              <Label className="text-xs text-muted-foreground">{t("wallet.withdraw2fa")}</Label>
-              <Input placeholder="000000" maxLength={6} value={withdrawForm.two_fa_code} onChange={(e) => setWithdrawForm((p) => ({ ...p, two_fa_code: e.target.value }))} className="h-10 rounded-lg border-0 bg-input text-center tracking-widest" />
-            </div>
-            <Button className="h-12 w-full rounded-xl font-semibold" disabled={withdraw.isPending || !withdrawForm.address || !withdrawForm.amount}
-              onClick={() => withdraw.mutate(withdrawForm, { onSuccess: () => { toast.success(t("wallet.withdrawSuccess")); setWithdrawForm({ currency: "USDT", network: "BEP20", address: "", amount: "", two_fa_code: "" }); setTab("activity") } })}>
-              {withdraw.isPending ? t("wallet.withdrawing") : t("wallet.withdrawBtn")}
-            </Button>
+            {twoFAEnabled ? (
+              <>
+                <div className="space-y-1">
+                  <Label className="text-xs text-muted-foreground">{t("wallet.withdraw2fa")}</Label>
+                  <Input placeholder="000000" maxLength={6} value={withdrawForm.two_fa_code} onChange={(e) => setWithdrawForm((p) => ({ ...p, two_fa_code: e.target.value }))} className="h-10 rounded-lg border-0 bg-input text-center tracking-widest" />
+                </div>
+                <Button className="h-12 w-full rounded-xl font-semibold" disabled={withdraw.isPending || !withdrawForm.address || !withdrawForm.amount}
+                  onClick={() => withdraw.mutate(withdrawForm, { onSuccess: () => { toast.success(t("wallet.withdrawSuccess")); setWithdrawForm({ currency: "USDT", network: "BEP20", address: "", amount: "", two_fa_code: "" }); setTab("activity") } })}>
+                  {withdraw.isPending ? t("wallet.withdrawing") : t("wallet.withdrawBtn")}
+                </Button>
+              </>
+            ) : (
+              <div className="rounded-xl bg-destructive/10 p-4 text-center">
+                <ShieldAlert className="mx-auto mb-2 h-8 w-8 text-destructive" />
+                <p className="text-sm font-medium">{t("wallet.require2fa")}</p>
+                <p className="mt-1 text-xs text-muted-foreground">{t("wallet.require2faDesc")}</p>
+                <Button className="mt-3" variant="outline" onClick={() => router.push("/settings?tab=security")}>
+                  {t("wallet.setup2fa")}
+                </Button>
+              </div>
+            )}
           </div>
         </div>
       )}

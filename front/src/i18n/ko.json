@@ -151,7 +151,10 @@
     "withdrawing": "제출 중...",
     "withdrawSuccess": "출금이 제출되었습니다",
     "selectAddress": "화이트리스트 주소 선택",
-    "noWhitelistWarn": "먼저 화이트리스트 주소를 추가하세요"
+    "noWhitelistWarn": "먼저 화이트리스트 주소를 추가하세요",
+    "require2fa": "2단계 인증 필요",
+    "require2faDesc": "자금 보호를 위해 출금 전 2FA를 활성화해 주세요",
+    "setup2fa": "2FA 설정하기"
   },
   "investment": {
     "title": "투자 관리",

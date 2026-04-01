@@ -151,7 +151,10 @@
     "withdrawing": "提交中...",
     "withdrawSuccess": "提现已提交",
     "selectAddress": "选择白名单地址",
-    "noWhitelistWarn": "请先添加白名单地址"
+    "noWhitelistWarn": "请先添加白名单地址",
+    "require2fa": "需要开启两步验证",
+    "require2faDesc": "为保障资金安全，提现前请先绑定两步验证（2FA）",
+    "setup2fa": "去绑定 2FA"
   },
   "investment": {
     "title": "投资管理",
