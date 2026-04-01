@@ -196,6 +196,9 @@ func (p *CoboProvider) Withdraw(ctx context.Context, req WithdrawReq) (*Withdraw
 	)
 	if addr, ok := p.withdrawAddresses[req.Network]; ok && addr != "" {
 		mpcSource.SetAddress(addr)
+	} else {
+		// withdrawAddresses 中没找到，打印调试信息
+		fmt.Printf("[DEBUG] withdraw_addresses map: %v, looking for network: %s\n", p.withdrawAddresses, req.Network)
 	}
 	source := coboWaas2.TransferSource{
 		MpcTransferSource: mpcSource,
