@@ -39,7 +39,7 @@ crypto:
   aes_key: ""
 
 wallet:
-  address_cooldown: "24h"
+  address_cooldown: "0s"
   currencies:
     - USDT
 
