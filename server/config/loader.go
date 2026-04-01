@@ -6,6 +6,7 @@ import (
 	"strings"
 	"time"
 
+
 	"github.com/go-viper/mapstructure/v2"
 	"github.com/knadh/koanf/parsers/yaml"
 	"github.com/knadh/koanf/providers/env"
@@ -68,6 +69,10 @@ func Load() (*Config, error) {
 	}
 	for _, sc := range subConfigs {
 		if sub := k.Cut(sc.key); len(sub.Keys()) > 0 {
+			// koanf 用 "." 分隔符会把嵌套 map 的 key 展平（如 withdraw_addresses.BEP20）
+			// 需要重建嵌套结构
+			data := rebuildNestedMap(sub.All())
+
 			decoder, _ := mapstructure.NewDecoder(&mapstructure.DecoderConfig{
 				DecodeHook: mapstructure.ComposeDecodeHookFunc(
 					mapstructure.StringToTimeDurationHookFunc(),
@@ -76,7 +81,7 @@ func Load() (*Config, error) {
 				WeaklyTypedInput: true,
 				TagName:          "yaml",
 			})
-			if err := decoder.Decode(sub.All()); err != nil {
+			if err := decoder.Decode(data); err != nil {
 				return nil, fmt.Errorf("unmarshal %s config: %w", sc.key, err)
 			}
 		}
@@ -124,4 +129,28 @@ func setDefaults(cfg *Config) {
 	if cfg.Worker.PremiumFetchInterval == 0 {
 		cfg.Worker.PremiumFetchInterval = 2 * time.Second
 	}
+}
+
+// rebuildNestedMap 将 koanf 展平的 "a.b" key 重建为嵌套 map
+func rebuildNestedMap(flat map[string]interface{}) map[string]interface{} {
+	result := make(map[string]interface{})
+	nested := make(map[string]map[string]interface{})
+
+	for k, v := range flat {
+		parts := strings.SplitN(k, ".", 2)
+		if len(parts) == 2 {
+			if nested[parts[0]] == nil {
+				nested[parts[0]] = make(map[string]interface{})
+			}
+			nested[parts[0]][parts[1]] = v
+		} else {
+			result[k] = v
+		}
+	}
+
+	for k, v := range nested {
+		result[k] = v
+	}
+
+	return result
 }
