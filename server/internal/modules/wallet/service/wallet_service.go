@@ -212,6 +212,14 @@ func (s *walletService) Withdraw(ctx context.Context, userID string, req dto.Wit
 		return nil, apperr.Wrap(apperr.ErrInternal, err)
 	}
 
+	s.logger.Info("calling cobo withdraw",
+		slog.String("currency", req.Currency),
+		slog.String("network", req.Network),
+		slog.String("address", req.Address),
+		slog.String("amount", amount.String()),
+		slog.String("request_id", tx.ID),
+	)
+
 	result, err := s.provider.Withdraw(ctx, cobo.WithdrawReq{
 		Currency:  req.Currency,
 		Network:   req.Network,
@@ -220,6 +228,10 @@ func (s *walletService) Withdraw(ctx context.Context, userID string, req dto.Wit
 		RequestID: tx.ID,
 	})
 	if err != nil {
+		s.logger.Error("cobo withdraw failed",
+			slog.String("error", err.Error()),
+			slog.String("tx_id", tx.ID),
+		)
 		s.txRepo.UpdateStatus(ctx, tx.ID, model.TxStatusFailed, "")
 		s.walletRepo.UpdateBalance(ctx, wallet.ID, wallet.Available, wallet.InOperation, wallet.Frozen)
 		return nil, apperr.Wrap(apperr.ErrInternal, fmt.Errorf("withdraw: %w", err))
