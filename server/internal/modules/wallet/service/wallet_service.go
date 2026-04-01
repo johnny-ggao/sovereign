@@ -5,6 +5,7 @@ import (
 	"errors"
 	"fmt"
 	"log/slog"
+	"strings"
 	"time"
 
 	"github.com/shopspring/decimal"
@@ -501,6 +502,13 @@ func (s *walletService) handleDepositWebhook(ctx context.Context, payload cobo.W
 	}
 
 	if err := s.txRepo.Create(ctx, tx); err != nil {
+		// 唯一约束冲突 = 并发重复，按已存在处理
+		if strings.Contains(err.Error(), "duplicate") || strings.Contains(err.Error(), "unique") {
+			s.logger.Info("deposit tx already exists (concurrent), skip",
+				slog.String("cobo_id", payload.ID),
+			)
+			return nil
+		}
 		s.logger.Error("create deposit tx failed", slog.String("error", err.Error()))
 		return err
 	}
