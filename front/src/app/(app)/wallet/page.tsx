@@ -214,7 +214,17 @@ export default function WalletPage() {
                   <Input placeholder="000000" maxLength={6} value={withdrawForm.two_fa_code} onChange={(e) => setWithdrawForm((p) => ({ ...p, two_fa_code: e.target.value }))} className="h-10 rounded-lg border-0 bg-input text-center tracking-widest" />
                 </div>
                 <Button className="h-12 w-full rounded-xl font-semibold" disabled={withdraw.isPending || !withdrawForm.address || !withdrawForm.amount}
-                  onClick={() => withdraw.mutate(withdrawForm, { onSuccess: () => { toast.success(t("wallet.withdrawSuccess")); setWithdrawForm({ currency: "USDT", network: "BEP20", address: "", amount: "", two_fa_code: "" }); setTab("activity") } })}>
+                  onClick={() => withdraw.mutate(withdrawForm, {
+                    onSuccess: () => {
+                      toast.success(t("wallet.withdrawSuccess"))
+                      setWithdrawForm({ currency: "USDT", network: "BEP20", address: "", amount: "", two_fa_code: "" })
+                      setTab("activity")
+                    },
+                    onError: (err) => {
+                      const msg = err instanceof Error ? err.message : "Withdraw failed"
+                      toast.error(msg)
+                    },
+                  })}>
                   {withdraw.isPending ? t("wallet.withdrawing") : t("wallet.withdrawBtn")}
                 </Button>
               </>
