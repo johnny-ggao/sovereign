@@ -14,7 +14,7 @@ func RegisterRoutes(rg *gin.RouterGroup, h *handler.WalletHandler) {
 		wallets.GET("", h.GetWallets)
 		wallets.POST("/deposit-address", h.GetDepositAddress)
 
-		withdraw := wallets.Group("", middleware.RateLimit(3, time.Minute))
+		withdraw := wallets.Group("", middleware.RateLimit(10, time.Minute))
 		{
 			withdraw.POST("/withdraw", h.Withdraw)
 		}
