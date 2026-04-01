@@ -13,6 +13,7 @@ type TransactionRepository interface {
 	FindByExternalID(ctx context.Context, externalID string) (*model.Transaction, error)
 	FindByUserID(ctx context.Context, userID string, txType string, limit, offset int) ([]model.Transaction, int64, error)
 	UpdateStatus(ctx context.Context, id, status, txHash string) error
+	UpdateExternalID(ctx context.Context, id, externalID string) error
 }
 
 type transactionRepository struct {
@@ -74,4 +75,11 @@ func (r *transactionRepository) UpdateStatus(ctx context.Context, id, status, tx
 		Model(&model.Transaction{}).
 		Where("id = ?", id).
 		Updates(updates).Error
+}
+
+func (r *transactionRepository) UpdateExternalID(ctx context.Context, id, externalID string) error {
+	return r.db.WithContext(ctx).
+		Model(&model.Transaction{}).
+		Where("id = ?", id).
+		Update("external_id", externalID).Error
 }

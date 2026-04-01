@@ -237,7 +237,11 @@ func (s *walletService) Withdraw(ctx context.Context, userID string, req dto.Wit
 		return nil, apperr.Wrap(apperr.ErrInternal, fmt.Errorf("withdraw: %w", err))
 	}
 
+	// 保存 Cobo 返回的 external_id 并更新状态
+	tx.ExternalID = result.ExternalID
 	s.txRepo.UpdateStatus(ctx, tx.ID, model.TxStatusProcessing, "")
+	// 单独更新 external_id
+	s.txRepo.UpdateExternalID(ctx, tx.ID, result.ExternalID)
 
 	s.eventBus.Publish(ctx, events.Event{
 		Type: events.WithdrawRequested,
@@ -251,6 +255,7 @@ func (s *walletService) Withdraw(ctx context.Context, userID string, req dto.Wit
 	s.logger.Info("withdrawal initiated",
 		slog.String("user_id", userID),
 		slog.String("tx_id", tx.ID),
+		slog.String("external_id", result.ExternalID),
 		slog.String("currency", req.Currency),
 		slog.String("amount", amount.String()),
 	)
