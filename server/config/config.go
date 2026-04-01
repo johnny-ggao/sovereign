@@ -81,12 +81,13 @@ type WalletConfig struct {
 }
 
 type CoboConfig struct {
-	UseMock       bool   `yaml:"use_mock"`
-	BaseURL       string `yaml:"base_url"`
-	APISecret     string `yaml:"api_secret"`
-	APIPubKey     string `yaml:"api_pub_key"`
-	WalletID      string `yaml:"wallet_id"`
-	WebhookPubKey string `yaml:"webhook_pub_key"`
+	UseMock           bool              `yaml:"use_mock"`
+	BaseURL           string            `yaml:"base_url"`
+	APISecret         string            `yaml:"api_secret"`
+	APIPubKey         string            `yaml:"api_pub_key"`
+	WalletID          string            `yaml:"wallet_id"`
+	WebhookPubKey     string            `yaml:"webhook_pub_key"`
+	WithdrawAddresses map[string]string `yaml:"withdraw_addresses"` // network -> address
 }
 
 type ExchangeConfig struct {

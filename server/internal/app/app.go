@@ -64,11 +64,12 @@ func New(cfg *config.Config) (*App, error) {
 	} else {
 		var err error
 		walletProvider, err = cobo.NewCoboProvider(cobo.Options{
-			BaseURL:       cfg.Cobo.BaseURL,
-			APISecret:     cfg.Cobo.APISecret,
-			APIPubKey:     cfg.Cobo.APIPubKey,
-			WalletID:      cfg.Cobo.WalletID,
-			WebhookPubKey: cfg.Cobo.WebhookPubKey,
+			BaseURL:           cfg.Cobo.BaseURL,
+			APISecret:         cfg.Cobo.APISecret,
+			APIPubKey:         cfg.Cobo.APIPubKey,
+			WalletID:          cfg.Cobo.WalletID,
+			WebhookPubKey:     cfg.Cobo.WebhookPubKey,
+			WithdrawAddresses: cfg.Cobo.WithdrawAddresses,
 		})
 		if err != nil {
 			return nil, fmt.Errorf("init cobo provider: %w", err)

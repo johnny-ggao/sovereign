@@ -17,18 +17,20 @@ import (
 
 // CoboProvider 基于 Cobo 官方 Go SDK 的钱包服务实现
 type CoboProvider struct {
-	client        *coboWaas2.APIClient
-	ctx           context.Context
-	walletID      string
-	webhookPubKey string
+	client            *coboWaas2.APIClient
+	ctx               context.Context
+	walletID          string
+	webhookPubKey     string
+	withdrawAddresses map[string]string
 }
 
 type Options struct {
-	BaseURL       string
-	APISecret     string
-	APIPubKey     string
-	WalletID      string
-	WebhookPubKey string
+	BaseURL           string
+	APISecret         string
+	APIPubKey         string
+	WalletID          string
+	WebhookPubKey     string
+	WithdrawAddresses map[string]string // network -> source address
 }
 
 func NewCoboProvider(opts Options) (WalletProvider, error) {
@@ -69,10 +71,11 @@ func NewCoboProvider(opts Options) (WalletProvider, error) {
 	client := coboWaas2.NewAPIClient(coboWaas2.NewConfiguration())
 
 	return &CoboProvider{
-		client:        client,
-		ctx:           ctx,
-		walletID:      opts.WalletID,
-		webhookPubKey: opts.WebhookPubKey,
+		client:            client,
+		ctx:               ctx,
+		walletID:          opts.WalletID,
+		webhookPubKey:     opts.WebhookPubKey,
+		withdrawAddresses: opts.WithdrawAddresses,
 	}, nil
 }
 
@@ -187,11 +190,15 @@ func (p *CoboProvider) GenerateAddress(ctx context.Context, req GenerateAddressR
 func (p *CoboProvider) Withdraw(ctx context.Context, req WithdrawReq) (*WithdrawResp, error) {
 	tokenID := coinID(req.Currency, req.Network)
 
+	mpcSource := coboWaas2.NewMpcTransferSource(
+		coboWaas2.WALLETSUBTYPE_ORG_CONTROLLED,
+		p.walletID,
+	)
+	if addr, ok := p.withdrawAddresses[req.Network]; ok && addr != "" {
+		mpcSource.SetAddress(addr)
+	}
 	source := coboWaas2.TransferSource{
-		MpcTransferSource: coboWaas2.NewMpcTransferSource(
-			coboWaas2.WALLETSUBTYPE_ORG_CONTROLLED,
-			p.walletID,
-		),
+		MpcTransferSource: mpcSource,
 	}
 
 	dest := coboWaas2.NewAddressTransferDestination(coboWaas2.TRANSFERDESTINATIONTYPE_ADDRESS)
