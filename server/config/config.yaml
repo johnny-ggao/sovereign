@@ -52,7 +52,6 @@ cobo:
   webhook_pub_key: ""
 
 internal:
-  api_key: ""
   allowed_ips:
     - "127.0.0.1"
     - "172.31.0.0/16"
