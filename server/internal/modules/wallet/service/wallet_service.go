@@ -493,10 +493,20 @@ func (s *walletService) HandleWebhook(ctx context.Context, payload cobo.WebhookP
 func (s *walletService) handleDepositWebhook(ctx context.Context, payload cobo.WebhookPayload) error {
 	s.logger.Info("processing deposit webhook",
 		slog.String("cobo_id", payload.ID),
+		slog.String("currency", payload.Currency),
 		slog.String("address", payload.Address),
 		slog.String("amount", payload.Amount.String()),
 		slog.String("status", payload.Status),
 	)
+
+	// 只处理 USDT 充值，忽略其他币种（如 BNB 手续费归集）
+	if payload.Currency != "USDT" {
+		s.logger.Info("ignoring non-USDT deposit",
+			slog.String("currency", payload.Currency),
+			slog.String("amount", payload.Amount.String()),
+		)
+		return nil
+	}
 
 	// 通过充值地址反查用户
 	depositAddr, err := s.addrRepo.FindDepositAddressByAddress(ctx, payload.Address)
