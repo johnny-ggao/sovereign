@@ -66,7 +66,7 @@ func SetupRouter(a *App, ctx context.Context) *gin.Engine {
 	// 手动触发结算（内部接口）
 	if a.SettlementJob != nil {
 		internal.POST("/settlement/trigger", func(c *gin.Context) {
-			if err := a.SettlementJob.Run(c.Request.Context()); err != nil {
+			if err := a.SettlementJob.RunToday(c.Request.Context()); err != nil {
 				c.JSON(500, gin.H{"success": false, "error": err.Error()})
 				return
 			}

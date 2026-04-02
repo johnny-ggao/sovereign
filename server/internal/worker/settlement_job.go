@@ -61,16 +61,23 @@ func (j *SettlementJob) Name() string {
 	return "settlement_job"
 }
 
-// Run 每天 0 点执行，结算前一天的交易盈利
+// Run 定时任务调用，结算昨天的交易
 func (j *SettlementJob) Run(ctx context.Context) error {
-	now := time.Now()
-	// 结算前一天
-	yesterday := now.AddDate(0, 0, -1)
-	dayStart := time.Date(yesterday.Year(), yesterday.Month(), yesterday.Day(), 0, 0, 0, 0, time.UTC)
-	dayEnd := time.Date(now.Year(), now.Month(), now.Day(), 0, 0, 0, 0, time.UTC)
-	period := yesterday.Format("2006-01-02")
+	return j.RunForDate(ctx, time.Now().AddDate(0, 0, -1))
+}
 
-	j.logger.Info("daily settlement started", slog.String("period", period))
+// RunToday 手动触发，结算今天的交易
+func (j *SettlementJob) RunToday(ctx context.Context) error {
+	return j.RunForDate(ctx, time.Now())
+}
+
+// RunForDate 结算指定日期的交易盈利
+func (j *SettlementJob) RunForDate(ctx context.Context, date time.Time) error {
+	dayStart := time.Date(date.Year(), date.Month(), date.Day(), 0, 0, 0, 0, time.UTC)
+	dayEnd := dayStart.Add(24 * time.Hour)
+	period := date.Format("2006-01-02")
+
+	j.logger.Info("settlement started", slog.String("period", period))
 
 	// 1. 获取所有 active 投资
 	activeInvs, err := j.invRepo.FindAllActive(ctx)
@@ -145,7 +152,7 @@ func (j *SettlementJob) Run(ctx context.Context) error {
 			NetReturn:      invShare,
 			TradeCount:     int(tradeCount),
 			AvgPremiumPct:  avgPremium,
-			SettledAt:      now,
+			SettledAt:      time.Now(),
 		}
 
 		if err := j.settlRepo.Create(ctx, settlement); err != nil {
