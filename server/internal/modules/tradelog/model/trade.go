@@ -10,8 +10,8 @@ import (
 
 type Trade struct {
 	ID           string          `gorm:"type:uuid;primaryKey" json:"id"`
-	InvestmentID string          `gorm:"type:uuid;index;default:''" json:"investment_id"`
-	UserID       string          `gorm:"type:uuid;index;default:''" json:"user_id"`
+	InvestmentID *string         `gorm:"type:uuid;index" json:"investment_id"`
+	UserID       *string         `gorm:"type:uuid;index" json:"user_id"`
 	Pair         string          `gorm:"type:varchar(20);not null" json:"pair"`
 	BuyExchange  string          `gorm:"type:varchar(20);not null" json:"buy_exchange"`
 	SellExchange string          `gorm:"type:varchar(20);not null" json:"sell_exchange"`

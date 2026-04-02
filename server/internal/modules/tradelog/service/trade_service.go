@@ -115,9 +115,13 @@ func (s *tradeService) buildTrade(req dto.CreateTradeRequest) (*model.Trade, err
 }
 
 func toTradeResponse(t *model.Trade) *dto.TradeResponse {
+	invID := ""
+	if t.InvestmentID != nil {
+		invID = *t.InvestmentID
+	}
 	return &dto.TradeResponse{
 		ID:           t.ID,
-		InvestmentID: t.InvestmentID,
+		InvestmentID: invID,
 		Pair:         t.Pair,
 		BuyExchange:  t.BuyExchange,
 		SellExchange: t.SellExchange,
