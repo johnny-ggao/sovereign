@@ -400,12 +400,21 @@ func (s *walletService) HandleWebhook(ctx context.Context, payload cobo.WebhookP
 		return nil
 	}
 
-	tx, err := s.txRepo.FindByExternalID(ctx, payload.RequestID)
+	// 提现时 request_id = 我们的 tx.ID
+	tx, err := s.txRepo.FindByID(ctx, payload.RequestID)
 	if err != nil {
-		if errors.Is(err, gorm.ErrRecordNotFound) {
-			return nil
+		// 也尝试用 external_id 查找
+		tx, err = s.txRepo.FindByExternalID(ctx, payload.RequestID)
+		if err != nil {
+			if errors.Is(err, gorm.ErrRecordNotFound) {
+				s.logger.Warn("withdraw webhook: transaction not found",
+					slog.String("request_id", payload.RequestID),
+					slog.String("cobo_id", payload.ID),
+				)
+				return nil
+			}
+			return err
 		}
-		return err
 	}
 
 	mappedStatus := payload.Status
@@ -420,6 +429,13 @@ func (s *walletService) HandleWebhook(ctx context.Context, payload cobo.WebhookP
 	if !validStatuses[mappedStatus] {
 		mappedStatus = model.TxStatusPending
 	}
+
+	s.logger.Info("processing withdraw webhook",
+		slog.String("tx_id", tx.ID),
+		slog.String("old_status", tx.Status),
+		slog.String("new_status", mappedStatus),
+		slog.String("tx_hash", payload.TxHash),
+	)
 
 	if err := s.txRepo.UpdateStatus(ctx, tx.ID, mappedStatus, payload.TxHash); err != nil {
 		return err
