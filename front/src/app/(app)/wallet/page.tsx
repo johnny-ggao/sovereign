@@ -8,7 +8,7 @@ import { Input } from "@/components/ui/input"
 import { Label } from "@/components/ui/label"
 import { Badge } from "@/components/ui/badge"
 import { Skeleton } from "@/components/ui/skeleton"
-import { ArrowDownLeft, ArrowUpRight, Copy, Check, Wallet, ChevronRight, Plus, Trash2, Clock, ShieldAlert } from "lucide-react"
+import { ArrowDownLeft, ArrowUpRight, Copy, Check, Wallet, ChevronRight, Plus, Trash2, Clock, ShieldAlert, ExternalLink } from "lucide-react"
 import { QRCodeSVG } from "qrcode.react"
 import { formatCurrency, formatDateTime, shortenAddress } from "@/lib/format"
 import { useT } from "@/hooks/use-t"
@@ -18,6 +18,20 @@ const NETWORKS = [
   { value: "BEP20", label: "BEP-20 (BSC)" },
   { value: "TRC20", label: "TRC-20 (TRON)" },
 ]
+
+function getExplorerUrl(network: string, txHash: string): string | null {
+  if (!txHash) return null
+  switch (network) {
+    case "BEP20":
+      return `https://bscscan.com/tx/${txHash}`
+    case "TRC20":
+      return `https://tronscan.org/#/transaction/${txHash}`
+    case "ERC20":
+      return `https://etherscan.io/tx/${txHash}`
+    default:
+      return null
+  }
+}
 
 export default function WalletPage() {
   const { data: wallets, isLoading } = useWallets()
@@ -106,27 +120,35 @@ export default function WalletPage() {
         <div className="glass rounded-2xl p-4">
           {transactions && Array.isArray(transactions) && transactions.length > 0 ? (
             <div className="space-y-1">
-              {transactions.map((tx) => (
-                <div key={tx.id} className="flex items-center justify-between rounded-xl px-3 py-3 hover:bg-accent/30">
-                  <div className="flex items-center gap-3">
-                    <div className={`flex h-9 w-9 items-center justify-center rounded-full ${tx.type === "deposit" ? "bg-success/10" : "bg-destructive/10"}`}>
-                      {tx.type === "deposit" ? <ArrowDownLeft className="h-4 w-4 text-success" /> : <ArrowUpRight className="h-4 w-4 text-destructive" />}
+              {transactions.map((tx) => {
+                const explorerUrl = getExplorerUrl(tx.network, tx.tx_hash)
+                const Wrapper = explorerUrl ? "a" : "div"
+                const wrapperProps = explorerUrl ? { href: explorerUrl, target: "_blank", rel: "noopener noreferrer" } : {}
+                return (
+                  <Wrapper key={tx.id} {...wrapperProps} className={`flex items-center justify-between rounded-xl px-3 py-3 hover:bg-accent/30 ${explorerUrl ? "cursor-pointer" : ""}`}>
+                    <div className="flex items-center gap-3">
+                      <div className={`flex h-9 w-9 items-center justify-center rounded-full ${tx.type === "deposit" ? "bg-success/10" : "bg-destructive/10"}`}>
+                        {tx.type === "deposit" ? <ArrowDownLeft className="h-4 w-4 text-success" /> : <ArrowUpRight className="h-4 w-4 text-destructive" />}
+                      </div>
+                      <div>
+                        <p className="text-sm font-medium capitalize">{tx.type}</p>
+                        <p className="text-xs text-muted-foreground">{tx.network} · {formatDateTime(tx.created_at)}</p>
+                      </div>
                     </div>
-                    <div>
-                      <p className="text-sm font-medium capitalize">{tx.type}</p>
-                      <p className="text-xs text-muted-foreground">{tx.network} · {formatDateTime(tx.created_at)}</p>
+                    <div className="flex items-center gap-2">
+                      <div className="text-right">
+                        <p className={`text-sm font-semibold ${tx.type === "deposit" ? "text-success" : "text-destructive"}`}>
+                          {tx.type === "deposit" ? "+" : "-"}{formatCurrency(tx.amount)} USDT
+                        </p>
+                        <Badge variant="outline" className={`text-[10px] ${tx.status === "confirmed" ? "border-success/30 text-success" : "border-muted-foreground/30"}`}>
+                          {tx.status}
+                        </Badge>
+                      </div>
+                      {explorerUrl && <ExternalLink className="h-3.5 w-3.5 text-muted-foreground" />}
                     </div>
-                  </div>
-                  <div className="text-right">
-                    <p className={`text-sm font-semibold ${tx.type === "deposit" ? "text-success" : "text-destructive"}`}>
-                      {tx.type === "deposit" ? "+" : "-"}{formatCurrency(tx.amount)} USDT
-                    </p>
-                    <Badge variant="outline" className={`text-[10px] ${tx.status === "confirmed" ? "border-success/30 text-success" : "border-muted-foreground/30"}`}>
-                      {tx.status}
-                    </Badge>
-                  </div>
-                </div>
-              ))}
+                  </Wrapper>
+                )
+              })}
               <button className="mt-2 flex w-full items-center justify-center gap-1 py-2 text-sm text-primary">
                 View All <ChevronRight className="h-3.5 w-3.5" />
               </button>
