@@ -31,11 +31,16 @@ func Load() (*Config, error) {
 		}
 	}
 
+	// 环境变量映射规则：
+	// SOVEREIGN_COBO__USE_MOCK → cobo.use_mock（双下划线 __ 转 . 分隔层级，单下划线保持）
 	if err := k.Load(env.Provider("SOVEREIGN_", ".", func(s string) string {
-		return strings.ReplaceAll(
-			strings.ToLower(strings.TrimPrefix(s, "SOVEREIGN_")),
-			"_", ".",
-		)
+		key := strings.ToLower(strings.TrimPrefix(s, "SOVEREIGN_"))
+		// 先把 __ 替换为临时占位符
+		key = strings.ReplaceAll(key, "__", "\x00")
+		// 单下划线保持原样（不转成 .）
+		// 把占位符转回 .（层级分隔）
+		key = strings.ReplaceAll(key, "\x00", ".")
+		return key
 	}), nil); err != nil {
 		return nil, fmt.Errorf("load env config: %w", err)
 	}

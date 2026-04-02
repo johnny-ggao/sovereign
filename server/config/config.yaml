@@ -45,14 +45,6 @@ wallet:
 
 cobo:
   use_mock: true
-  base_url: "https://api.cobo.com"
-  api_secret: ""
-  api_pub_key: ""
-  wallet_id: ""
-  webhook_pub_key: ""
-  withdraw_addresses:
-    BEP20: ""
-    TRC20: ""
 
 internal:
   allowed_ips:
