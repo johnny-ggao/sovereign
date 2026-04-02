@@ -58,7 +58,7 @@ func NewCoboProvider(opts Options) (WalletProvider, error) {
 	}
 
 	env := coboWaas2.DevEnv
-	if opts.BaseURL == "https://api.cobo.com" {
+	if strings.Contains(opts.BaseURL, "api.cobo.com") && !strings.Contains(opts.BaseURL, "dev") {
 		env = coboWaas2.ProdEnv
 	}
 

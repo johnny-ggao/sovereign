@@ -74,7 +74,10 @@ func New(cfg *config.Config) (*App, error) {
 		if err != nil {
 			return nil, fmt.Errorf("init cobo provider: %w", err)
 		}
-		log.Info("using cobo wallet provider", slog.String("base_url", cfg.Cobo.BaseURL))
+		log.Info("using cobo wallet provider",
+			slog.String("base_url", cfg.Cobo.BaseURL),
+			slog.String("wallet_id", cfg.Cobo.WalletID),
+		)
 	}
 
 	walletMod := wallet.NewModule(db, walletProvider, bus, log, cfg.Wallet.AddressCooldown)
