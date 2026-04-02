@@ -15,6 +15,7 @@ import (
 	"github.com/sovereign-fund/sovereign/internal/modules/settlement"
 	"github.com/sovereign-fund/sovereign/internal/modules/tradelog"
 	"github.com/sovereign-fund/sovereign/internal/modules/wallet"
+	"github.com/sovereign-fund/sovereign/internal/worker"
 	"github.com/sovereign-fund/sovereign/internal/shared/database"
 	"github.com/sovereign-fund/sovereign/internal/shared/events"
 	"github.com/sovereign-fund/sovereign/pkg/cobo"
@@ -39,6 +40,7 @@ type App struct {
 	TradeLogModule   *tradelog.Module
 	SettlementModule *settlement.Module
 	SettingsModule   *settings.Module
+	SettlementJob    *worker.SettlementJob
 }
 
 func New(cfg *config.Config) (*App, error) {

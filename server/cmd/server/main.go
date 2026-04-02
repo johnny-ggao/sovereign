@@ -80,6 +80,13 @@ func main() {
 		}
 	}()
 
+	// 初始化结算任务（用于手动触发）
+	application.SettlementJob = worker.NewSettlementJobFromDB(
+		application.DB,
+		application.EventBus,
+		application.Logger,
+	)
+
 	router := app.SetupRouter(application, appCtx)
 
 	srv := &http.Server{

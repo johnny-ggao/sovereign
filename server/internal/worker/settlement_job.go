@@ -13,6 +13,7 @@ import (
 	tradeRepo "github.com/sovereign-fund/sovereign/internal/modules/tradelog/repository"
 	walletRepo "github.com/sovereign-fund/sovereign/internal/modules/wallet/repository"
 	"github.com/sovereign-fund/sovereign/internal/shared/events"
+	"gorm.io/gorm"
 )
 
 type SettlementJob struct {
@@ -42,6 +43,18 @@ func NewSettlementJob(
 		logger:     logger,
 		feeRate:    decimal.NewFromFloat(0.5),
 	}
+}
+
+// NewSettlementJobFromDB 便捷构造函数，自动创建所有 repo
+func NewSettlementJobFromDB(db *gorm.DB, bus events.Bus, logger *slog.Logger) *SettlementJob {
+	return NewSettlementJob(
+		investRepo.NewInvestmentRepository(db),
+		tradeRepo.NewTradeRepository(db),
+		settlRepo.NewSettlementRepository(db),
+		walletRepo.NewWalletRepository(db),
+		bus,
+		logger,
+	)
 }
 
 func (j *SettlementJob) Name() string {
