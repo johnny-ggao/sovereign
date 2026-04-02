@@ -7,8 +7,6 @@ import (
 	"time"
 
 	"github.com/shopspring/decimal"
-	investModel "github.com/sovereign-fund/sovereign/internal/modules/investment/model"
-	investRepo "github.com/sovereign-fund/sovereign/internal/modules/investment/repository"
 	"github.com/sovereign-fund/sovereign/internal/modules/tradelog/dto"
 	"github.com/sovereign-fund/sovereign/internal/modules/tradelog/model"
 	"github.com/sovereign-fund/sovereign/internal/modules/tradelog/repository"
@@ -17,32 +15,24 @@ import (
 
 type TradeService interface {
 	GetTrades(ctx context.Context, userID string, filters dto.TradeFilterRequest, page, perPage int) (*dto.TradeListResponse, int64, error)
+	GetAllTrades(ctx context.Context, filters dto.TradeFilterRequest, page, perPage int) (*dto.TradeListResponse, int64, error)
 	CreateTrade(ctx context.Context, req dto.CreateTradeRequest) (*dto.TradeResponse, error)
 	BatchCreateTrades(ctx context.Context, req dto.BatchCreateTradeRequest) (int, error)
 	ExportCSV(ctx context.Context, userID string, filters dto.TradeFilterRequest) ([]byte, error)
 }
 
 type tradeService struct {
-	tradeRepo  repository.TradeRepository
-	investRepo investRepo.InvestmentRepository
-	logger     *slog.Logger
+	tradeRepo repository.TradeRepository
+	logger    *slog.Logger
 }
 
-func NewTradeService(repo repository.TradeRepository, ir investRepo.InvestmentRepository, logger *slog.Logger) TradeService {
-	return &tradeService{tradeRepo: repo, investRepo: ir, logger: logger}
+func NewTradeService(repo repository.TradeRepository, logger *slog.Logger) TradeService {
+	return &tradeService{tradeRepo: repo, logger: logger}
 }
 
+// CreateTrade 创建基金级套利交易记录（不绑定具体投资）
 func (s *tradeService) CreateTrade(ctx context.Context, req dto.CreateTradeRequest) (*dto.TradeResponse, error) {
-	// 校验投资存在
-	inv, err := s.investRepo.FindByID(ctx, req.InvestmentID)
-	if err != nil {
-		return nil, apperr.New(400, "INVALID_INVESTMENT", "investment not found")
-	}
-	if inv.Status != investModel.InvestStatusActive {
-		return nil, apperr.New(400, "INVESTMENT_NOT_ACTIVE", "investment is not active")
-	}
-
-	trade, err := s.buildTrade(req, inv.UserID)
+	trade, err := s.buildTrade(req)
 	if err != nil {
 		return nil, err
 	}
@@ -51,14 +41,8 @@ func (s *tradeService) CreateTrade(ctx context.Context, req dto.CreateTradeReque
 		return nil, apperr.Wrap(apperr.ErrInternal, fmt.Errorf("create trade: %w", err))
 	}
 
-	// 更新投资收益
-	if err := s.updateInvestmentReturns(ctx, inv); err != nil {
-		s.logger.Error("update investment returns failed", slog.String("error", err.Error()))
-	}
-
 	s.logger.Info("trade created",
 		slog.String("trade_id", trade.ID),
-		slog.String("investment_id", trade.InvestmentID),
 		slog.String("pair", trade.Pair),
 		slog.String("pnl", trade.PnL.String()),
 	)
@@ -66,30 +50,11 @@ func (s *tradeService) CreateTrade(ctx context.Context, req dto.CreateTradeReque
 	return toTradeResponse(trade), nil
 }
 
+// BatchCreateTrades 批量创建基金级套利交易记录
 func (s *tradeService) BatchCreateTrades(ctx context.Context, req dto.BatchCreateTradeRequest) (int, error) {
-	// 按 investment_id 分组
-	invIDs := make(map[string]bool)
-	for _, t := range req.Trades {
-		invIDs[t.InvestmentID] = true
-	}
-
-	// 校验所有投资存在且 active
-	invMap := make(map[string]*investModel.Investment)
-	for id := range invIDs {
-		inv, err := s.investRepo.FindByID(ctx, id)
-		if err != nil {
-			return 0, apperr.New(400, "INVALID_INVESTMENT", fmt.Sprintf("investment %s not found", id))
-		}
-		if inv.Status != investModel.InvestStatusActive {
-			return 0, apperr.New(400, "INVESTMENT_NOT_ACTIVE", fmt.Sprintf("investment %s is not active", id))
-		}
-		invMap[id] = inv
-	}
-
 	created := 0
-	for _, req := range req.Trades {
-		inv := invMap[req.InvestmentID]
-		trade, err := s.buildTrade(req, inv.UserID)
+	for _, r := range req.Trades {
+		trade, err := s.buildTrade(r)
 		if err != nil {
 			s.logger.Error("skip invalid trade", slog.String("error", err.Error()))
 			continue
@@ -101,20 +66,11 @@ func (s *tradeService) BatchCreateTrades(ctx context.Context, req dto.BatchCreat
 		created++
 	}
 
-	// 更新所有涉及的投资收益
-	for _, inv := range invMap {
-		if err := s.updateInvestmentReturns(ctx, inv); err != nil {
-			s.logger.Error("update investment returns failed",
-				slog.String("investment_id", inv.ID),
-				slog.String("error", err.Error()),
-			)
-		}
-	}
-
+	s.logger.Info("batch trades created", slog.Int("count", created))
 	return created, nil
 }
 
-func (s *tradeService) buildTrade(req dto.CreateTradeRequest, userID string) (*model.Trade, error) {
+func (s *tradeService) buildTrade(req dto.CreateTradeRequest) (*model.Trade, error) {
 	buyPrice, err := decimal.NewFromString(req.BuyPrice)
 	if err != nil {
 		return nil, apperr.New(400, "INVALID_PRICE", "invalid buy_price")
@@ -145,8 +101,6 @@ func (s *tradeService) buildTrade(req dto.CreateTradeRequest, userID string) (*m
 	}
 
 	return &model.Trade{
-		InvestmentID: req.InvestmentID,
-		UserID:       userID,
 		Pair:         req.Pair,
 		BuyExchange:  req.BuyExchange,
 		SellExchange: req.SellExchange,
@@ -158,29 +112,6 @@ func (s *tradeService) buildTrade(req dto.CreateTradeRequest, userID string) (*m
 		Fee:          fee,
 		ExecutedAt:   executedAt,
 	}, nil
-}
-
-func (s *tradeService) updateInvestmentReturns(ctx context.Context, inv *investModel.Investment) error {
-	summary, err := s.tradeRepo.SummarizeByUserID(ctx, inv.UserID, repository.TradeFilters{
-		InvestmentID: inv.ID,
-	})
-	if err != nil {
-		return err
-	}
-
-	totalPnL := decimal.NewFromFloat(summary.TotalPnL)
-	perfFee := decimal.Zero
-	if totalPnL.GreaterThan(decimal.Zero) {
-		perfFee = totalPnL.Mul(decimal.NewFromFloat(0.5))
-	}
-	netReturn := totalPnL.Sub(perfFee)
-
-	updated := *inv
-	updated.TotalReturn = totalPnL
-	updated.PerformanceFee = perfFee
-	updated.NetReturn = netReturn
-
-	return s.investRepo.Update(ctx, &updated)
 }
 
 func toTradeResponse(t *model.Trade) *dto.TradeResponse {
@@ -200,12 +131,12 @@ func toTradeResponse(t *model.Trade) *dto.TradeResponse {
 	}
 }
 
+// GetTrades 获取用户的交易记录（前端用）
 func (s *tradeService) GetTrades(ctx context.Context, userID string, filters dto.TradeFilterRequest, page, perPage int) (*dto.TradeListResponse, int64, error) {
 	offset := (page - 1) * perPage
 
 	repoFilters := repository.TradeFilters{
-		InvestmentID: filters.InvestmentID,
-		Pair:         filters.Pair,
+		Pair: filters.Pair,
 	}
 	if filters.From != "" {
 		if t, err := time.Parse(time.RFC3339, filters.From); err == nil {
@@ -218,12 +149,38 @@ func (s *tradeService) GetTrades(ctx context.Context, userID string, filters dto
 		}
 	}
 
-	trades, _, err := s.tradeRepo.FindByUserID(ctx, userID, repoFilters, perPage, offset)
+	// 基金级交易不绑定用户，查全部
+	return s.queryTrades(ctx, repoFilters, perPage, offset)
+}
+
+// GetAllTrades 获取所有交易记录（基金级）
+func (s *tradeService) GetAllTrades(ctx context.Context, filters dto.TradeFilterRequest, page, perPage int) (*dto.TradeListResponse, int64, error) {
+	offset := (page - 1) * perPage
+
+	repoFilters := repository.TradeFilters{
+		Pair: filters.Pair,
+	}
+	if filters.From != "" {
+		if t, err := time.Parse(time.RFC3339, filters.From); err == nil {
+			repoFilters.From = t
+		}
+	}
+	if filters.To != "" {
+		if t, err := time.Parse(time.RFC3339, filters.To); err == nil {
+			repoFilters.To = t
+		}
+	}
+
+	return s.queryTrades(ctx, repoFilters, perPage, offset)
+}
+
+func (s *tradeService) queryTrades(ctx context.Context, filters repository.TradeFilters, limit, offset int) (*dto.TradeListResponse, int64, error) {
+	trades, _, err := s.tradeRepo.FindAll(ctx, filters, limit, offset)
 	if err != nil {
 		return nil, 0, apperr.Wrap(apperr.ErrInternal, err)
 	}
 
-	summary, err := s.tradeRepo.SummarizeByUserID(ctx, userID, repoFilters)
+	summary, err := s.tradeRepo.SummarizeAll(ctx, filters)
 	if err != nil {
 		return nil, 0, apperr.Wrap(apperr.ErrInternal, err)
 	}
@@ -251,11 +208,10 @@ func (s *tradeService) GetTrades(ctx context.Context, userID string, filters dto
 
 func (s *tradeService) ExportCSV(ctx context.Context, userID string, filters dto.TradeFilterRequest) ([]byte, error) {
 	repoFilters := repository.TradeFilters{
-		InvestmentID: filters.InvestmentID,
-		Pair:         filters.Pair,
+		Pair: filters.Pair,
 	}
 
-	trades, _, err := s.tradeRepo.FindByUserID(ctx, userID, repoFilters, 10000, 0)
+	trades, _, err := s.tradeRepo.FindAll(ctx, repoFilters, 10000, 0)
 	if err != nil {
 		return nil, apperr.Wrap(apperr.ErrInternal, err)
 	}

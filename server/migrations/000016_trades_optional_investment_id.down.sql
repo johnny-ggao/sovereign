@@ -1,0 +1,2 @@
+ALTER TABLE trades ALTER COLUMN investment_id SET NOT NULL;
+ALTER TABLE trades ALTER COLUMN user_id SET NOT NULL;

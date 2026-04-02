@@ -1,7 +1,7 @@
 package dto
 
 type CreateTradeRequest struct {
-	InvestmentID string `json:"investment_id" binding:"required,uuid"`
+	InvestmentID string `json:"investment_id" binding:"omitempty,uuid"`
 	Pair         string `json:"pair" binding:"required"`
 	BuyExchange  string `json:"buy_exchange" binding:"required"`
 	SellExchange string `json:"sell_exchange" binding:"required"`

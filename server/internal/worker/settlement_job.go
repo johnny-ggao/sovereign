@@ -70,30 +70,15 @@ func (j *SettlementJob) Run(ctx context.Context) error {
 		return nil
 	}
 
-	// 2. 统计当天所有交易的总盈利
-	totalPnL := decimal.Zero
-	totalTradeCount := int64(0)
-	totalPremium := decimal.Zero
-
-	for _, inv := range activeInvs {
-		count, err := j.tradeRepo.CountByInvestmentAndPeriod(ctx, inv.ID, dayStart, dayEnd)
-		if err != nil {
-			j.logger.Error("count trades failed", slog.String("investment_id", inv.ID), slog.String("error", err.Error()))
-			continue
-		}
-		totalTradeCount += count
-
-		summary, err := j.tradeRepo.SummarizeByUserID(ctx, inv.UserID, tradeRepo.TradeFilters{
-			InvestmentID: inv.ID,
-			From:         dayStart,
-			To:           dayEnd,
-		})
-		if err != nil {
-			continue
-		}
-		totalPnL = totalPnL.Add(decimal.NewFromFloat(summary.TotalPnL))
-		totalPremium = totalPremium.Add(decimal.NewFromFloat(summary.AvgPremium))
+	// 2. 统计当天所有基金级交易的总盈利
+	summary, err := j.tradeRepo.SummarizeByPeriod(ctx, dayStart, dayEnd)
+	if err != nil {
+		return fmt.Errorf("summarize trades: %w", err)
 	}
+
+	totalPnL := decimal.NewFromFloat(summary.TotalPnL)
+	totalTradeCount := summary.TotalTrades
+	avgPremium := decimal.NewFromFloat(summary.AvgPremium)
 
 	j.logger.Info("daily pnl calculated",
 		slog.String("period", period),
@@ -122,20 +107,13 @@ func (j *SettlementJob) Run(ctx context.Context) error {
 	}
 
 	// 5. 按投资金额比例分配给每个投资
-	avgPremium := decimal.Zero
-	if len(activeInvs) > 0 {
-		avgPremium = totalPremium.Div(decimal.NewFromInt(int64(len(activeInvs))))
-	}
-
 	for _, inv := range activeInvs {
-		// 该投资的分配比例
 		ratio := inv.Amount.Div(totalInvested)
 		invShare := userShare.Mul(ratio).Round(18)
 		invFee := platformFee.Mul(ratio).Round(18)
 		invGross := totalPnL.Mul(ratio).Round(18)
 
-		// 该投资当天的交易数
-		tradeCount, _ := j.tradeRepo.CountByInvestmentAndPeriod(ctx, inv.ID, dayStart, dayEnd)
+		tradeCount := totalTradeCount
 
 		// 检查是否已结算
 		existing, _ := j.settlRepo.FindByInvestmentAndPeriod(ctx, inv.ID, period)
