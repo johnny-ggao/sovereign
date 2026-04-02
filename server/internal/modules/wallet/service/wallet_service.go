@@ -417,6 +417,13 @@ func (s *walletService) HandleWebhook(ctx context.Context, payload cobo.WebhookP
 		}
 	}
 
+	s.logger.Info("withdraw webhook payload",
+		slog.String("raw_status", payload.Status),
+		slog.String("type", payload.Type),
+		slog.String("request_id", payload.RequestID),
+		slog.String("tx_hash", payload.TxHash),
+	)
+
 	mappedStatus := payload.Status
 	// Cobo 原始状态已在 WebhookPayload 解析时映射，但做安全校验
 	validStatuses := map[string]bool{
