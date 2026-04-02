@@ -33,7 +33,7 @@
 
 | 字段 | 类型 | 必填 | 说明 |
 |------|------|------|------|
-| `investment_id` | string (UUID) | ✅ | 关联的投资 ID，必须为 active 状态 |
+| `investment_id` | string (UUID) | ❌ | 可选，留空即可（基金级交易不绑定投资） |
 | `pair` | string | ✅ | 交易对，如 `BTC/KRW`、`ETH/KRW`、`SOL/KRW`、`XRP/KRW` |
 | `buy_exchange` | string | ✅ | 买入交易所，如 `binance`、`bybit` |
 | `sell_exchange` | string | ✅ | 卖出交易所，如 `upbit`、`bithumb` |
@@ -152,12 +152,13 @@
 
 ### 投资收益自动更新
 
-每次创建交易记录后，系统自动重新计算关联投资的收益：
+交易记录是基金级别的，不绑定具体投资人。收益通过每日结算（UTC 0:00）按投资比例分配：
 
 ```
-total_return    = SUM(trades.pnl)           -- 该投资所有交易的总盈亏
-performance_fee = total_return * 50%        -- 平台绩效费（仅盈利时收取）
-net_return      = total_return - performance_fee  -- 用户净收益
+1. 汇总当天所有交易的总盈利 (total_pnl)
+2. 盈利的 50% 分给用户（按投资金额比例）
+3. 盈利的 50% 为平台绩效费
+4. 用户净收益自动到账钱包 Available 余额
 ```
 
 ### 支持的交易对
@@ -194,7 +195,6 @@ internal:
 curl -X POST http://172.31.1.31/api/v1/internal/trades \
   -H "Content-Type: application/json" \
   -d '{
-    "investment_id": "e1a6d729-7b64-4605-a71a-d8889b897fd4",
     "pair": "BTC/KRW",
     "buy_exchange": "binance",
     "sell_exchange": "upbit",
@@ -241,7 +241,6 @@ from datetime import datetime
 API_URL = "http://172.31.1.31/api/v1/internal/trades"
 
 trade = {
-    "investment_id": "e1a6d729-7b64-4605-a71a-d8889b897fd4",
     "pair": "BTC/KRW",
     "buy_exchange": "binance",
     "sell_exchange": "upbit",
