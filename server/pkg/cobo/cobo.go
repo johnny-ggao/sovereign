@@ -194,11 +194,14 @@ func (p *CoboProvider) Withdraw(ctx context.Context, req WithdrawReq) (*Withdraw
 		coboWaas2.WALLETSUBTYPE_ORG_CONTROLLED,
 		p.walletID,
 	)
-	if addr, ok := p.withdrawAddresses[req.Network]; ok && addr != "" {
-		mpcSource.SetAddress(addr)
-	} else {
+	addr := p.withdrawAddresses[req.Network]
+	if addr == "" {
+		addr = p.withdrawAddresses[strings.ToLower(req.Network)]
+	}
+	if addr == "" {
 		return nil, fmt.Errorf("no withdraw source address configured for network %s (configured: %v)", req.Network, p.withdrawAddresses)
 	}
+	mpcSource.SetAddress(addr)
 	source := coboWaas2.TransferSource{
 		MpcTransferSource: mpcSource,
 	}
