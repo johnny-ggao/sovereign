@@ -19,7 +19,7 @@ type Trade struct {
 	SellPrice    decimal.Decimal `gorm:"type:decimal(28,8);not null" json:"sell_price"`
 	Amount       decimal.Decimal `gorm:"type:decimal(28,18);not null" json:"amount"`
 	PremiumPct   decimal.Decimal `gorm:"type:decimal(8,4);not null" json:"premium_pct"`
-	PnL          decimal.Decimal `gorm:"type:decimal(28,18);not null" json:"pnl"`
+	PnL          decimal.Decimal `gorm:"column:pnl;type:decimal(28,18);not null" json:"pnl"`
 	Fee          decimal.Decimal `gorm:"type:decimal(28,18);default:0" json:"fee"`
 	ExecutedAt   time.Time       `gorm:"not null" json:"executed_at"`
 	CreatedAt    time.Time       `gorm:"autoCreateTime" json:"created_at"`
