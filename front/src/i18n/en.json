@@ -154,7 +154,10 @@
     "noWhitelistWarn": "Add a whitelist address first",
     "require2fa": "Two-Factor Authentication Required",
     "require2faDesc": "Please enable 2FA before making withdrawals to protect your funds",
-    "setup2fa": "Set Up 2FA"
+    "setup2fa": "Set Up 2FA",
+    "earnings": "Pending Earnings",
+    "claimEarnings": "Claim",
+    "earningsClaimed": "Earnings claimed to available balance"
   },
   "investment": {
     "title": "Investments",

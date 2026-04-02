@@ -43,6 +43,9 @@ type WalletService interface {
 
 	// InitDepositAddresses 为新用户预生成所有网络的充值地址
 	InitDepositAddresses(ctx context.Context, userID string, networks []string) error
+
+	// ClaimEarnings 将收益提取到可用余额
+	ClaimEarnings(ctx context.Context, userID string) error
 }
 
 type walletService struct {
@@ -94,6 +97,7 @@ func (s *walletService) GetWallets(ctx context.Context, userID string) (*dto.Wal
 			Available:   w.Available,
 			InOperation: w.InOperation,
 			Frozen:      w.Frozen,
+			Earnings:    w.Earnings,
 			Total:       w.TotalBalance(),
 		})
 		if w.Currency == "USDT" {
@@ -629,6 +633,27 @@ func (s *walletService) InitDepositAddresses(ctx context.Context, userID string,
 				slog.String("error", err.Error()),
 			)
 			// 不中断，继续生成下一个网络的地址
+		}
+	}
+	return nil
+}
+
+func (s *walletService) ClaimEarnings(ctx context.Context, userID string) error {
+	wallets, err := s.walletRepo.FindByUserID(ctx, userID)
+	if err != nil {
+		return apperr.Wrap(apperr.ErrInternal, err)
+	}
+
+	for _, w := range wallets {
+		if w.Earnings.IsPositive() {
+			if err := s.walletRepo.ClaimEarnings(ctx, w.ID); err != nil {
+				return apperr.Wrap(apperr.ErrInternal, err)
+			}
+			s.logger.Info("earnings claimed",
+				slog.String("user_id", userID),
+				slog.String("currency", w.Currency),
+				slog.String("amount", w.Earnings.String()),
+			)
 		}
 	}
 	return nil

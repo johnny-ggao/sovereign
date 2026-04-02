@@ -14,6 +14,8 @@ type WalletRepository interface {
 	FindByUserIDAndCurrency(ctx context.Context, userID, currency string) (*model.Wallet, error)
 	FindOrCreate(ctx context.Context, userID, currency string) (*model.Wallet, error)
 	UpdateBalance(ctx context.Context, id string, available, inOperation, frozen decimal.Decimal) error
+	AddEarnings(ctx context.Context, id string, amount decimal.Decimal) error
+	ClaimEarnings(ctx context.Context, id string) error
 }
 
 type walletRepository struct {
@@ -64,5 +66,22 @@ func (r *walletRepository) UpdateBalance(ctx context.Context, id string, availab
 			"available":    available,
 			"in_operation": inOperation,
 			"frozen":       frozen,
+		}).Error
+}
+
+func (r *walletRepository) AddEarnings(ctx context.Context, id string, amount decimal.Decimal) error {
+	return r.db.WithContext(ctx).
+		Model(&model.Wallet{}).
+		Where("id = ?", id).
+		Update("earnings", gorm.Expr("earnings + ?", amount)).Error
+}
+
+func (r *walletRepository) ClaimEarnings(ctx context.Context, id string) error {
+	return r.db.WithContext(ctx).
+		Model(&model.Wallet{}).
+		Where("id = ? AND earnings > 0", id).
+		Updates(map[string]any{
+			"available": gorm.Expr("available + earnings"),
+			"earnings":  0,
 		}).Error
 }

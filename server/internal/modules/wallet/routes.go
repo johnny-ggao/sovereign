@@ -19,6 +19,7 @@ func RegisterRoutes(rg *gin.RouterGroup, h *handler.WalletHandler) {
 			withdraw.POST("/withdraw", h.Withdraw)
 		}
 
+		wallets.POST("/claim-earnings", h.ClaimEarnings)
 		wallets.GET("/addresses", h.GetWhitelistAddresses)
 		wallets.POST("/addresses", h.AddWhitelistAddress)
 		wallets.DELETE("/addresses/:id", h.RemoveWhitelistAddress)

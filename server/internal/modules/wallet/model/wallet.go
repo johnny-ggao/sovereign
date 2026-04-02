@@ -15,6 +15,7 @@ type Wallet struct {
 	Available   decimal.Decimal `gorm:"type:decimal(28,18);default:0" json:"available"`
 	InOperation decimal.Decimal `gorm:"type:decimal(28,18);default:0" json:"in_operation"`
 	Frozen      decimal.Decimal `gorm:"type:decimal(28,18);default:0" json:"frozen"`
+	Earnings    decimal.Decimal `gorm:"type:decimal(28,18);default:0" json:"earnings"`
 	CreatedAt   time.Time       `gorm:"autoCreateTime" json:"created_at"`
 	UpdatedAt   time.Time       `gorm:"autoUpdateTime" json:"updated_at"`
 }
@@ -27,5 +28,5 @@ func (w *Wallet) BeforeCreate(_ *gorm.DB) error {
 }
 
 func (w *Wallet) TotalBalance() decimal.Decimal {
-	return w.Available.Add(w.InOperation).Add(w.Frozen)
+	return w.Available.Add(w.InOperation).Add(w.Frozen).Add(w.Earnings)
 }

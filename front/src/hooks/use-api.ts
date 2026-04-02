@@ -114,6 +114,16 @@ export function useWithdraw() {
   })
 }
 
+export function useClaimEarnings() {
+  const qc = useQueryClient()
+  return useMutation({
+    mutationFn: () => api.post("/wallets/claim-earnings"),
+    onSuccess: () => {
+      qc.invalidateQueries({ queryKey: ["wallets"] })
+    },
+  })
+}
+
 export function useTransactions(type?: string, page: number = 1) {
   const params = new URLSearchParams({ page: String(page) })
   if (type) params.set("type", type)

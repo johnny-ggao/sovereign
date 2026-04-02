@@ -8,6 +8,7 @@ type WalletResponse struct {
 	Available   decimal.Decimal `json:"available"`
 	InOperation decimal.Decimal `json:"in_operation"`
 	Frozen      decimal.Decimal `json:"frozen"`
+	Earnings    decimal.Decimal `json:"earnings"`
 	Total       decimal.Decimal `json:"total"`
 }
 

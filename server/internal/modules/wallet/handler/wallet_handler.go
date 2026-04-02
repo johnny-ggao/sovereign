@@ -114,6 +114,15 @@ func (h *WalletHandler) RemoveWhitelistAddress(c *gin.Context) {
 	response.NoContent(c)
 }
 
+func (h *WalletHandler) ClaimEarnings(c *gin.Context) {
+	userID := c.GetString("user_id")
+	if err := h.walletSvc.ClaimEarnings(c.Request.Context(), userID); err != nil {
+		handleError(c, err)
+		return
+	}
+	response.OK(c, gin.H{"message": "earnings claimed"})
+}
+
 func (h *WalletHandler) GetTransactions(c *gin.Context) {
 	userID := c.GetString("user_id")
 	txType := c.Query("type")

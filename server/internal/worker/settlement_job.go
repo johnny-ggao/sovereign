@@ -173,15 +173,14 @@ func (j *SettlementJob) RunForDate(ctx context.Context, date time.Time) error {
 			continue
 		}
 
-		// 更新钱包余额：将净收益加到 Available
+		// 更新钱包收益：将净收益加到 Earnings（用户手动提取到 Available）
 		wallet, err := j.walletRepo.FindByUserIDAndCurrency(ctx, inv.UserID, inv.Currency)
 		if err != nil {
 			j.logger.Error("find wallet failed", slog.String("error", err.Error()))
 			continue
 		}
-		newAvailable := wallet.Available.Add(invShare)
-		if err := j.walletRepo.UpdateBalance(ctx, wallet.ID, newAvailable, wallet.InOperation, wallet.Frozen); err != nil {
-			j.logger.Error("update wallet failed", slog.String("error", err.Error()))
+		if err := j.walletRepo.AddEarnings(ctx, wallet.ID, invShare); err != nil {
+			j.logger.Error("add earnings failed", slog.String("error", err.Error()))
 			continue
 		}
 

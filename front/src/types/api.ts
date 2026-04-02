@@ -102,6 +102,7 @@ export interface WalletBalance {
   available: string
   in_operation: string
   frozen: string
+  earnings: string
   total: string
 }
 

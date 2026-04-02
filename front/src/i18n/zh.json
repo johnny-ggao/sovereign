@@ -154,7 +154,10 @@
     "noWhitelistWarn": "请先添加白名单地址",
     "require2fa": "需要开启两步验证",
     "require2faDesc": "为保障资金安全，提现前请先绑定两步验证（2FA）",
-    "setup2fa": "去绑定 2FA"
+    "setup2fa": "去绑定 2FA",
+    "earnings": "待提取收益",
+    "claimEarnings": "提取收益",
+    "earningsClaimed": "收益已提取到可用余额"
   },
   "investment": {
     "title": "投资管理",

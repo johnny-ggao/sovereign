@@ -2,13 +2,13 @@
 
 import { useState, useEffect } from "react"
 import { useRouter } from "next/navigation"
-import { useWallets, useTransactions, useDepositAddress, useWhitelistAddresses, useAddWhitelistAddress, useRemoveWhitelistAddress, useWithdraw, useSecurityOverview } from "@/hooks/use-api"
+import { useWallets, useTransactions, useDepositAddress, useWhitelistAddresses, useAddWhitelistAddress, useRemoveWhitelistAddress, useWithdraw, useSecurityOverview, useClaimEarnings } from "@/hooks/use-api"
 import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
 import { Label } from "@/components/ui/label"
 import { Badge } from "@/components/ui/badge"
 import { Skeleton } from "@/components/ui/skeleton"
-import { ArrowDownLeft, ArrowUpRight, Copy, Check, Wallet, ChevronRight, Plus, Trash2, Clock, ShieldAlert, ExternalLink } from "lucide-react"
+import { ArrowDownLeft, ArrowUpRight, Copy, Check, Wallet, ChevronRight, Plus, Trash2, Clock, ShieldAlert, ExternalLink, Gift } from "lucide-react"
 import { QRCodeSVG } from "qrcode.react"
 import { formatCurrency, formatDateTime, shortenAddress } from "@/lib/format"
 import { useT } from "@/hooks/use-t"
@@ -41,6 +41,7 @@ export default function WalletPage() {
   const removeAddress = useRemoveWhitelistAddress()
   const depositAddr = useDepositAddress()
   const withdraw = useWithdraw()
+  const claimEarnings = useClaimEarnings()
   const { data: security } = useSecurityOverview()
   const router = useRouter()
   const t = useT()
@@ -95,6 +96,23 @@ export default function WalletPage() {
             <p className="mt-0.5 text-sm font-semibold">{formatCurrency(primaryWallet?.frozen || "0")}</p>
           </div>
         </div>
+
+        {/* Earnings */}
+        {primaryWallet && parseFloat(primaryWallet.earnings || "0") > 0 && (
+          <div className="mt-4 flex items-center justify-between rounded-xl bg-success/10 px-4 py-3">
+            <div className="flex items-center gap-2">
+              <Gift className="h-5 w-5 text-success" />
+              <div>
+                <p className="text-xs text-muted-foreground">{t("wallet.earnings")}</p>
+                <p className="text-lg font-bold text-success">${formatCurrency(primaryWallet.earnings)}</p>
+              </div>
+            </div>
+            <Button size="sm" className="rounded-lg" disabled={claimEarnings.isPending}
+              onClick={() => claimEarnings.mutate(undefined, { onSuccess: () => toast.success(t("wallet.earningsClaimed")) })}>
+              {claimEarnings.isPending ? t("common.loading") : t("wallet.claimEarnings")}
+            </Button>
+          </div>
+        )}
 
         <div className="mt-5 grid grid-cols-2 gap-3">
           <Button className="h-12 rounded-xl font-semibold" onClick={() => setTab("deposit")}>

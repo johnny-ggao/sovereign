@@ -154,7 +154,10 @@
     "noWhitelistWarn": "먼저 화이트리스트 주소를 추가하세요",
     "require2fa": "2단계 인증 필요",
     "require2faDesc": "자금 보호를 위해 출금 전 2FA를 활성화해 주세요",
-    "setup2fa": "2FA 설정하기"
+    "setup2fa": "2FA 설정하기",
+    "earnings": "미수령 수익",
+    "claimEarnings": "수령",
+    "earningsClaimed": "수익이 사용 가능 잔액으로 이체되었습니다"
   },
   "investment": {
     "title": "투자 관리",
