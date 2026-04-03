@@ -45,9 +45,10 @@ func main() {
 	// Settlement job
 	ir := investRepo.NewInvestmentRepository(db)
 	tr := tradeRepo.NewTradeRepository(db)
+	utr := tradeRepo.NewUserTradeRepository(db)
 	sr := settlRepo.NewSettlementRepository(db)
 	wr := walletRepository.NewWalletRepository(db)
-	settlJob := worker.NewSettlementJob(ir, tr, sr, wr, bus, log)
+	settlJob := worker.NewSettlementJob(ir, tr, utr, sr, wr, bus, log)
 
 	// Cleanup job
 	tokenRepo := authRepo.NewTokenRepository(db)

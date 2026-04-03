@@ -22,12 +22,13 @@ type TradeService interface {
 }
 
 type tradeService struct {
-	tradeRepo repository.TradeRepository
-	logger    *slog.Logger
+	tradeRepo     repository.TradeRepository
+	userTradeRepo repository.UserTradeRepository
+	logger        *slog.Logger
 }
 
-func NewTradeService(repo repository.TradeRepository, logger *slog.Logger) TradeService {
-	return &tradeService{tradeRepo: repo, logger: logger}
+func NewTradeService(repo repository.TradeRepository, utr repository.UserTradeRepository, logger *slog.Logger) TradeService {
+	return &tradeService{tradeRepo: repo, userTradeRepo: utr, logger: logger}
 }
 
 // CreateTrade 创建基金级套利交易记录（不绑定具体投资）
@@ -135,11 +136,11 @@ func toTradeResponse(t *model.Trade) *dto.TradeResponse {
 	}
 }
 
-// GetTrades 获取用户的交易记录（前端用）
+// GetTrades 获取用户的已结算交易记录（从 user_trades 读取）
 func (s *tradeService) GetTrades(ctx context.Context, userID string, filters dto.TradeFilterRequest, page, perPage int) (*dto.TradeListResponse, int64, error) {
 	offset := (page - 1) * perPage
 
-	repoFilters := repository.TradeFilters{
+	repoFilters := repository.UserTradeFilters{
 		Pair: filters.Pair,
 	}
 	if filters.From != "" {
@@ -153,8 +154,48 @@ func (s *tradeService) GetTrades(ctx context.Context, userID string, filters dto
 		}
 	}
 
-	// 基金级交易不绑定用户，查全部
-	return s.queryTrades(ctx, repoFilters, perPage, offset)
+	trades, total, err := s.userTradeRepo.FindByUserID(ctx, userID, repoFilters, perPage, offset)
+	if err != nil {
+		return nil, 0, apperr.Wrap(apperr.ErrInternal, err)
+	}
+
+	summary, err := s.userTradeRepo.SummarizeByUserID(ctx, userID, repoFilters)
+	if err != nil {
+		return nil, 0, apperr.Wrap(apperr.ErrInternal, err)
+	}
+
+	resp := make([]dto.TradeResponse, 0, len(trades))
+	for _, t := range trades {
+		resp = append(resp, dto.TradeResponse{
+			ID:           t.ID,
+			InvestmentID: t.InvestmentID,
+			Pair:         t.Pair,
+			BuyExchange:  t.BuyExchange,
+			SellExchange: t.SellExchange,
+			BuyPrice:     t.BuyPrice,
+			SellPrice:    t.SellPrice,
+			Amount:       t.Amount,
+			PremiumPct:   t.PremiumPct,
+			PnL:          t.PnL,
+			Fee:          t.Fee,
+			ExecutedAt:   t.ExecutedAt.Format(time.RFC3339),
+		})
+	}
+
+	winRate := decimal.Zero
+	if summary.TotalTrades > 0 {
+		winRate = decimal.NewFromInt(summary.WinCount).Div(decimal.NewFromInt(summary.TotalTrades)).Mul(decimal.NewFromInt(100))
+	}
+
+	return &dto.TradeListResponse{
+		Trades: resp,
+		Summary: dto.TradeSummary{
+			TotalTrades:   summary.TotalTrades,
+			TotalPnL:      decimal.NewFromFloat(summary.TotalPnL),
+			AvgPremiumPct: decimal.NewFromFloat(summary.AvgPremium),
+			WinRate:       winRate,
+		},
+	}, total, nil
 }
 
 // GetAllTrades 获取所有交易记录（基金级）
@@ -211,11 +252,11 @@ func (s *tradeService) queryTrades(ctx context.Context, filters repository.Trade
 }
 
 func (s *tradeService) ExportCSV(ctx context.Context, userID string, filters dto.TradeFilterRequest) ([]byte, error) {
-	repoFilters := repository.TradeFilters{
+	repoFilters := repository.UserTradeFilters{
 		Pair: filters.Pair,
 	}
 
-	trades, _, err := s.tradeRepo.FindAll(ctx, repoFilters, 10000, 0)
+	trades, _, err := s.userTradeRepo.FindByUserID(ctx, userID, repoFilters, 10000, 0)
 	if err != nil {
 		return nil, apperr.Wrap(apperr.ErrInternal, err)
 	}

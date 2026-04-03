@@ -16,7 +16,8 @@ type Module struct {
 
 func NewModule(db *gorm.DB, logger *slog.Logger) *Module {
 	repo := repository.NewTradeRepository(db)
-	svc := service.NewTradeService(repo, logger)
+	utr := repository.NewUserTradeRepository(db)
+	svc := service.NewTradeService(repo, utr, logger)
 	h := handler.NewTradeHandler(svc)
 
 	return &Module{Handler: h, Service: svc}

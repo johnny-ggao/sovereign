@@ -10,6 +10,7 @@ import (
 	investRepo "github.com/sovereign-fund/sovereign/internal/modules/investment/repository"
 	settlModel "github.com/sovereign-fund/sovereign/internal/modules/settlement/model"
 	settlRepo "github.com/sovereign-fund/sovereign/internal/modules/settlement/repository"
+	tradeModel "github.com/sovereign-fund/sovereign/internal/modules/tradelog/model"
 	tradeRepo "github.com/sovereign-fund/sovereign/internal/modules/tradelog/repository"
 	walletRepo "github.com/sovereign-fund/sovereign/internal/modules/wallet/repository"
 	"github.com/sovereign-fund/sovereign/internal/shared/events"
@@ -17,31 +18,34 @@ import (
 )
 
 type SettlementJob struct {
-	invRepo    investRepo.InvestmentRepository
-	tradeRepo  tradeRepo.TradeRepository
-	settlRepo  settlRepo.SettlementRepository
-	walletRepo walletRepo.WalletRepository
-	eventBus   events.Bus
-	logger     *slog.Logger
-	feeRate    decimal.Decimal
+	invRepo       investRepo.InvestmentRepository
+	tradeRepo     tradeRepo.TradeRepository
+	userTradeRepo tradeRepo.UserTradeRepository
+	settlRepo     settlRepo.SettlementRepository
+	walletRepo    walletRepo.WalletRepository
+	eventBus      events.Bus
+	logger        *slog.Logger
+	feeRate       decimal.Decimal
 }
 
 func NewSettlementJob(
 	ir investRepo.InvestmentRepository,
 	tr tradeRepo.TradeRepository,
+	utr tradeRepo.UserTradeRepository,
 	sr settlRepo.SettlementRepository,
 	wr walletRepo.WalletRepository,
 	bus events.Bus,
 	logger *slog.Logger,
 ) *SettlementJob {
 	return &SettlementJob{
-		invRepo:    ir,
-		tradeRepo:  tr,
-		settlRepo:  sr,
-		walletRepo: wr,
-		eventBus:   bus,
-		logger:     logger,
-		feeRate:    decimal.NewFromFloat(0.5),
+		invRepo:       ir,
+		tradeRepo:     tr,
+		userTradeRepo: utr,
+		settlRepo:     sr,
+		walletRepo:    wr,
+		eventBus:      bus,
+		logger:        logger,
+		feeRate:       decimal.NewFromFloat(0.5),
 	}
 }
 
@@ -50,6 +54,7 @@ func NewSettlementJobFromDB(db *gorm.DB, bus events.Bus, logger *slog.Logger) *S
 	return NewSettlementJob(
 		investRepo.NewInvestmentRepository(db),
 		tradeRepo.NewTradeRepository(db),
+		tradeRepo.NewUserTradeRepository(db),
 		settlRepo.NewSettlementRepository(db),
 		walletRepo.NewWalletRepository(db),
 		bus,
@@ -126,7 +131,14 @@ func (j *SettlementJob) RunForDate(ctx context.Context, date time.Time) error {
 		return nil
 	}
 
-	// 5. 按投资金额比例分配给每个投资
+	// 5. 获取当天所有基金级交易（用于生成 user_trades）
+	dayTrades, err := j.tradeRepo.FindByPeriod(ctx, dayStart, dayEnd)
+	if err != nil {
+		j.logger.Error("find day trades failed", slog.String("error", err.Error()))
+		dayTrades = nil
+	}
+
+	// 6. 按投资金额比例分配给每个投资
 	for _, inv := range activeInvs {
 		ratio := inv.Amount.Div(totalInvested)
 		invShare := userShare.Mul(ratio).Round(18)
@@ -161,6 +173,46 @@ func (j *SettlementJob) RunForDate(ctx context.Context, date time.Time) error {
 				slog.String("error", err.Error()),
 			)
 			continue
+		}
+
+		// 生成用户级交易记录
+		if len(dayTrades) > 0 {
+			exists, _ := j.userTradeRepo.ExistsBySettlementID(ctx, settlement.ID)
+			if !exists {
+				userTrades := make([]tradeModel.UserTrade, 0, len(dayTrades))
+				for _, t := range dayTrades {
+					tid := t.ID
+					sid := settlement.ID
+					userTrades = append(userTrades, tradeModel.UserTrade{
+						UserID:       inv.UserID,
+						InvestmentID: inv.ID,
+						TradeID:      &tid,
+						SettlementID: &sid,
+						Pair:         t.Pair,
+						BuyExchange:  t.BuyExchange,
+						SellExchange: t.SellExchange,
+						BuyPrice:     t.BuyPrice,
+						SellPrice:    t.SellPrice,
+						Amount:       t.Amount.Mul(ratio).Round(18),
+						PremiumPct:   t.PremiumPct,
+						PnL:          t.PnL.Mul(ratio).Round(18),
+						Fee:          t.Fee.Mul(ratio).Round(18),
+						Ratio:        ratio,
+						ExecutedAt:   t.ExecutedAt,
+					})
+				}
+				if err := j.userTradeRepo.BatchCreate(ctx, userTrades); err != nil {
+					j.logger.Error("create user trades failed",
+						slog.String("investment_id", inv.ID),
+						slog.String("error", err.Error()),
+					)
+				} else {
+					j.logger.Info("user trades created",
+						slog.String("user_id", inv.UserID),
+						slog.Int("count", len(userTrades)),
+					)
+				}
+			}
 		}
 
 		// 更新投资收益

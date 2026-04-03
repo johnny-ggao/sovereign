@@ -24,6 +24,7 @@ type TradeRepository interface {
 	SummarizeByUserID(ctx context.Context, userID string, filters TradeFilters) (*TradeSummaryResult, error)
 	SummarizeAll(ctx context.Context, filters TradeFilters) (*TradeSummaryResult, error)
 	SummarizeByPeriod(ctx context.Context, from, to time.Time) (*TradeSummaryResult, error)
+	FindByPeriod(ctx context.Context, from, to time.Time) ([]model.Trade, error)
 }
 
 type TradeFilters struct {
@@ -122,6 +123,15 @@ func (r *tradeRepository) SummarizeAll(ctx context.Context, filters TradeFilters
 
 func (r *tradeRepository) SummarizeByPeriod(ctx context.Context, from, to time.Time) (*TradeSummaryResult, error) {
 	return r.SummarizeAll(ctx, TradeFilters{From: from, To: to})
+}
+
+func (r *tradeRepository) FindByPeriod(ctx context.Context, from, to time.Time) ([]model.Trade, error) {
+	var trades []model.Trade
+	err := r.db.WithContext(ctx).
+		Where("executed_at >= ? AND executed_at < ?", from, to).
+		Order("executed_at ASC").
+		Find(&trades).Error
+	return trades, err
 }
 
 func (r *tradeRepository) FindByInvestmentID(ctx context.Context, investmentID string, limit, offset int) ([]model.Trade, int64, error) {
