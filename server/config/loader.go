@@ -71,6 +71,7 @@ func Load() (*Config, error) {
 		{"worker", &cfg.Worker},
 		{"google", &cfg.Google},
 		{"notification", &cfg.Notification},
+		{"admin", &cfg.Admin},
 	}
 	for _, sc := range subConfigs {
 		if sub := k.Cut(sc.key); len(sub.Keys()) > 0 {

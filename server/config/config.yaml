@@ -68,3 +68,7 @@ notification:
   from_address: "noreply@example.com"
   from_name: "Sovereign Fund"
   aws_region: "ap-northeast-2"
+
+admin:
+  jwt_secret: "dev-admin-secret-sovereign-2026!"
+  jwt_expiry: "24h"

@@ -17,6 +17,7 @@ Google   GoogleConfig   `yaml:"google"`
 	Worker   WorkerConfig   `yaml:"worker"`
 	Log          LogConfig          `yaml:"log"`
 	Notification NotificationConfig `yaml:"notification"`
+	Admin        AdminConfig        `yaml:"admin"`
 }
 
 type GoogleConfig struct {
@@ -118,6 +119,11 @@ type WorkerConfig struct {
 type LogConfig struct {
 	Level  string `yaml:"level"`
 	Format string `yaml:"format"`
+}
+
+type AdminConfig struct {
+	JWTSecret string        `yaml:"jwt_secret"`
+	JWTExpiry time.Duration `yaml:"jwt_expiry"`
 }
 
 type NotificationConfig struct {
