@@ -11,8 +11,9 @@ import (
 )
 
 type Module struct {
-	Handler *handler.SettingsHandler
-	Service service.SettingsService
+	Handler      *handler.SettingsHandler
+	Service      service.SettingsService
+	settingsRepo repository.SettingsRepository
 }
 
 func NewModule(db *gorm.DB, logger *slog.Logger) *Module {
@@ -21,5 +22,9 @@ func NewModule(db *gorm.DB, logger *slog.Logger) *Module {
 	svc := service.NewSettingsService(ur, sr, logger)
 	h := handler.NewSettingsHandler(svc)
 
-	return &Module{Handler: h, Service: svc}
+	return &Module{Handler: h, Service: svc, settingsRepo: sr}
+}
+
+func (m *Module) SettingsRepo() repository.SettingsRepository {
+	return m.settingsRepo
 }

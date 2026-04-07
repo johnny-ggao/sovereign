@@ -14,8 +14,9 @@ import (
 )
 
 type Module struct {
-	Handler *handler.AuthHandler
-	Service service.AuthService
+	Handler  *handler.AuthHandler
+	Service  service.AuthService
+	userRepo repository.UserRepository
 }
 
 func NewModule(db *gorm.DB, rdb *redis.Client, jwtMgr *jwtpkg.Manager, bus events.Bus, cfg *config.Config, logger *slog.Logger) *Module {
@@ -27,7 +28,12 @@ func NewModule(db *gorm.DB, rdb *redis.Client, jwtMgr *jwtpkg.Manager, bus event
 	authHandler := handler.NewAuthHandler(authSvc)
 
 	return &Module{
-		Handler: authHandler,
-		Service: authSvc,
+		Handler:  authHandler,
+		Service:  authSvc,
+		userRepo: userRepo,
 	}
+}
+
+func (m *Module) UserRepo() repository.UserRepository {
+	return m.userRepo
 }
