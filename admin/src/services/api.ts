@@ -145,3 +145,32 @@ export async function getTradeStats() {
     method: 'GET',
   });
 }
+
+/** Reset 2FA */
+export async function resetUser2FA(id: string) {
+  return request<API.ApiResponse<null>>(`/users/${id}/reset-2fa`, {
+    method: 'POST',
+  });
+}
+
+/** Transactions */
+export async function getTransactions(params: {
+  page?: number;
+  limit?: number;
+  type?: string;
+  search?: string;
+  status?: string;
+  date_from?: string;
+  date_to?: string;
+}) {
+  return request<API.ApiResponse<API.TransactionListItem[]>>('/transactions', {
+    method: 'GET',
+    params,
+  });
+}
+
+export async function getTransactionStats() {
+  return request<API.ApiResponse<API.TransactionStats>>('/transactions/stats', {
+    method: 'GET',
+  });
+}

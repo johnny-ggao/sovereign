@@ -53,6 +53,17 @@ func RegisterRoutes(r *gin.RouterGroup, m *Module) {
 		m.TradeHandler.Stats,
 	)
 
+
+	// Transactions
+	protected.GET("/transactions",
+		middleware.RequireRole(model.RoleSuperAdmin, model.RoleOperator, model.RoleViewer),
+		m.TransactionHandler.List,
+	)
+	protected.GET("/transactions/stats",
+		middleware.RequireRole(model.RoleSuperAdmin, model.RoleOperator, model.RoleViewer),
+		m.TransactionHandler.Stats,
+	)
+
 	// User management
 	users := protected.Group("/users")
 	{
@@ -79,6 +90,10 @@ func RegisterRoutes(r *gin.RouterGroup, m *Module) {
 		users.POST("/:id/reset-password",
 			middleware.RequireRole(model.RoleSuperAdmin, model.RoleOperator),
 			m.UserHandler.ResetPassword,
+		)
+		users.POST("/:id/reset-2fa",
+			middleware.RequireRole(model.RoleSuperAdmin, model.RoleOperator),
+			m.UserHandler.Reset2FA,
 		)
 		users.POST("/:id/adjust-balance",
 			middleware.RequireRole(model.RoleSuperAdmin),

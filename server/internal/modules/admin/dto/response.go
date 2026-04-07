@@ -133,3 +133,33 @@ type TradeStats struct {
 	TradeCount7D  int64  `json:"trade_count_7d"`
 	TradeCount30D int64  `json:"trade_count_30d"`
 }
+
+type TransactionListItem struct {
+	ID        string `json:"id"`
+	UserID    string `json:"user_id"`
+	UserEmail string `json:"user_email"`
+	Type      string `json:"type"`
+	Currency  string `json:"currency"`
+	Network   string `json:"network"`
+	Amount    string `json:"amount"`
+	Fee       string `json:"fee"`
+	Address   string `json:"address"`
+	TxHash    string `json:"tx_hash"`
+	Status    string `json:"status"`
+	CreatedAt string `json:"created_at"`
+}
+
+type TransactionStats struct {
+	Deposit1D        string `json:"deposit_1d"`
+	Deposit7D        string `json:"deposit_7d"`
+	Deposit30D       string `json:"deposit_30d"`
+	DepositCount1D   int64  `json:"deposit_count_1d"`
+	DepositCount7D   int64  `json:"deposit_count_7d"`
+	DepositCount30D  int64  `json:"deposit_count_30d"`
+	Withdraw1D       string `json:"withdraw_1d"`
+	Withdraw7D       string `json:"withdraw_7d"`
+	Withdraw30D      string `json:"withdraw_30d"`
+	WithdrawCount1D  int64  `json:"withdraw_count_1d"`
+	WithdrawCount7D  int64  `json:"withdraw_count_7d"`
+	WithdrawCount30D int64  `json:"withdraw_count_30d"`
+}

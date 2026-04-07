@@ -58,3 +58,13 @@ type TradeListQuery struct {
 	DateFrom string `form:"date_from"`
 	DateTo   string `form:"date_to"`
 }
+
+type TransactionListQuery struct {
+	Page     int    `form:"page,default=1"`
+	Limit    int    `form:"limit,default=20"`
+	Type     string `form:"type"`
+	Search   string `form:"search"`
+	Status   string `form:"status"`
+	DateFrom string `form:"date_from"`
+	DateTo   string `form:"date_to"`
+}

@@ -110,6 +110,15 @@ func (h *UserHandler) ResetPassword(c *gin.Context) {
 	response.OK(c, gin.H{"temporary_password": tempPassword})
 }
 
+func (h *UserHandler) Reset2FA(c *gin.Context) {
+	userID := c.Param("id")
+	if err := h.svc.Reset2FA(c.Request.Context(), userID); err != nil {
+		response.Fail(c, http.StatusBadRequest, "RESET_2FA_FAILED", err.Error())
+		return
+	}
+	response.OK(c, gin.H{"message": "2fa reset successful"})
+}
+
 func (h *UserHandler) ListInvestments(c *gin.Context) {
 	var query dto.InvestmentListQuery
 	if err := c.ShouldBindQuery(&query); err != nil {

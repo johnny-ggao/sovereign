@@ -152,3 +152,35 @@ declare namespace API {
     trade_count_30d: number;
   }
 }
+
+declare namespace API {
+  interface TransactionListItem {
+    id: string;
+    user_id: string;
+    user_email: string;
+    type: string;
+    currency: string;
+    network: string;
+    amount: string;
+    fee: string;
+    address: string;
+    tx_hash: string;
+    status: string;
+    created_at: string;
+  }
+
+  interface TransactionStats {
+    deposit_1d: string;
+    deposit_7d: string;
+    deposit_30d: string;
+    deposit_count_1d: number;
+    deposit_count_7d: number;
+    deposit_count_30d: number;
+    withdraw_1d: string;
+    withdraw_7d: string;
+    withdraw_30d: string;
+    withdraw_count_1d: number;
+    withdraw_count_7d: number;
+    withdraw_count_30d: number;
+  }
+}

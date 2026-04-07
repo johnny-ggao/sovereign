@@ -25,6 +25,7 @@ type UserService interface {
 	ResetPassword(ctx context.Context, userID string) (string, error)
 	AdjustBalance(ctx context.Context, userID string, req dto.AdjustBalanceRequest, adminID string) error
 	ListInvestments(ctx context.Context, query dto.InvestmentListQuery) ([]dto.InvestmentListItem, int64, error)
+	Reset2FA(ctx context.Context, userID string) error
 }
 
 type userService struct {
@@ -224,6 +225,16 @@ func (s *userService) ResetPassword(ctx context.Context, userID string) (string,
 
 	s.logger.Info("user password reset by admin", slog.String("user_id", userID))
 	return tempPassword, nil
+}
+
+func (s *userService) Reset2FA(ctx context.Context, userID string) error {
+	err := s.db.WithContext(ctx).Model(&authmodel.User{}).Where("id = ?", userID).
+		Updates(map[string]interface{}{"two_fa_secret": "", "two_fa_enabled": false}).Error
+	if err != nil {
+		return fmt.Errorf("reset 2fa: %w", err)
+	}
+	s.logger.Info("user 2fa reset", slog.String("user_id", userID))
+	return nil
 }
 
 func (s *userService) AdjustBalance(ctx context.Context, userID string, req dto.AdjustBalanceRequest, adminID string) error {

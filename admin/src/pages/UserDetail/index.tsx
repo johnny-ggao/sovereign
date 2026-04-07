@@ -18,6 +18,7 @@ import dayjs from 'dayjs';
 import {
   getUserDetail,
   resetUserPassword,
+  resetUser2FA,
   adjustBalance,
 } from '@/services/api';
 
@@ -119,6 +120,23 @@ const UserDetailPage: React.FC = () => {
     });
   };
 
+  const handleReset2FA = () => {
+    if (!id) return;
+    modal.confirm({
+      title: '重置两步验证',
+      content: `确认重置 ${user?.email} 的两步验证？`,
+      onOk: async () => {
+        try {
+          await resetUser2FA(id);
+          message.success('两步验证已重置');
+          fetchUser();
+        } catch (error: any) {
+          message.error(error?.message ?? '重置两步验证失败');
+        }
+      },
+    });
+  };
+
   const handleAdjustBalance = async () => {
     if (!id) return;
     setAdjustLoading(true);
@@ -146,6 +164,7 @@ const UserDetailPage: React.FC = () => {
         access.isOperator ? (
           <Space>
             <Button onClick={handleResetPassword}>重置密码</Button>
+            <Button onClick={handleReset2FA}>重置2FA</Button>
             <Button type="primary" onClick={() => setAdjustModalOpen(true)}>
               调整余额
             </Button>

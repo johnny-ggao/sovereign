@@ -11,13 +11,14 @@ import (
 )
 
 type Module struct {
-	AuthHandler      *handler.AuthHandler
-	AdminUserHandler *handler.AdminUserHandler
-	UserHandler      *handler.UserHandler
-	DashboardHandler *handler.DashboardHandler
-	TradeHandler     *handler.TradeHandler
-	AdminRepo        repository.AdminRepository
-	JWTSecret        string
+	AuthHandler        *handler.AuthHandler
+	AdminUserHandler   *handler.AdminUserHandler
+	UserHandler        *handler.UserHandler
+	DashboardHandler   *handler.DashboardHandler
+	TradeHandler       *handler.TradeHandler
+	TransactionHandler *handler.TransactionHandler
+	AdminRepo          repository.AdminRepository
+	JWTSecret          string
 }
 
 func NewModule(db *gorm.DB, cfg config.AdminConfig, logger *slog.Logger) *Module {
@@ -28,14 +29,16 @@ func NewModule(db *gorm.DB, cfg config.AdminConfig, logger *slog.Logger) *Module
 	userSvc := service.NewUserService(db, logger)
 	dashboardSvc := service.NewDashboardService(db, logger)
 	tradeSvc := service.NewTradeService(db)
+	transactionSvc := service.NewTransactionService(db)
 
 	return &Module{
-		AuthHandler:      handler.NewAuthHandler(authSvc),
-		AdminUserHandler: handler.NewAdminUserHandler(adminUserSvc),
-		UserHandler:      handler.NewUserHandler(userSvc),
-		DashboardHandler: handler.NewDashboardHandler(dashboardSvc),
-		TradeHandler:     handler.NewTradeHandler(tradeSvc),
-		AdminRepo:        repo,
-		JWTSecret:        cfg.JWTSecret,
+		AuthHandler:        handler.NewAuthHandler(authSvc),
+		AdminUserHandler:   handler.NewAdminUserHandler(adminUserSvc),
+		UserHandler:        handler.NewUserHandler(userSvc),
+		DashboardHandler:   handler.NewDashboardHandler(dashboardSvc),
+		TradeHandler:       handler.NewTradeHandler(tradeSvc),
+		TransactionHandler: handler.NewTransactionHandler(transactionSvc),
+		AdminRepo:          repo,
+		JWTSecret:          cfg.JWTSecret,
 	}
 }
