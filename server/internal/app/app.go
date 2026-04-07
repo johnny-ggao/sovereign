@@ -10,6 +10,7 @@ import (
 	"github.com/sovereign-fund/sovereign/internal/modules/auth"
 	"github.com/sovereign-fund/sovereign/internal/modules/dashboard"
 	"github.com/sovereign-fund/sovereign/internal/modules/investment"
+	"github.com/sovereign-fund/sovereign/internal/modules/notification"
 	"github.com/sovereign-fund/sovereign/internal/modules/premium"
 	"github.com/sovereign-fund/sovereign/internal/modules/settings"
 	"github.com/sovereign-fund/sovereign/internal/modules/settlement"
@@ -32,15 +33,16 @@ type App struct {
 	EventBus   events.Bus
 	JWTManager *jwtpkg.Manager
 
-	AuthModule       *auth.Module
-	WalletModule     *wallet.Module
-	PremiumModule    *premium.Module
-	DashboardModule  *dashboard.Module
-	InvestmentModule *investment.Module
-	TradeLogModule   *tradelog.Module
-	SettlementModule *settlement.Module
-	SettingsModule   *settings.Module
-	SettlementJob    *worker.SettlementJob
+	AuthModule         *auth.Module
+	WalletModule       *wallet.Module
+	PremiumModule      *premium.Module
+	DashboardModule    *dashboard.Module
+	InvestmentModule   *investment.Module
+	TradeLogModule     *tradelog.Module
+	SettlementModule   *settlement.Module
+	SettingsModule     *settings.Module
+	NotificationModule *notification.Module
+	SettlementJob      *worker.SettlementJob
 }
 
 func New(cfg *config.Config) (*App, error) {
@@ -100,20 +102,40 @@ func New(cfg *config.Config) (*App, error) {
 		return walletMod.Service.InitDepositAddresses(ctx, userID, []string{"BEP20", "TRC20"})
 	})
 
+	authMod := auth.NewModule(db, rdb, jwtMgr, bus, cfg, log)
+	settingsMod := settings.NewModule(db, log)
+
+	notifMod, err := notification.NewModule(
+		cfg.Notification,
+		authMod.UserRepo(),
+		settingsMod.SettingsRepo(),
+		"internal/modules/notification/template/emails",
+		log,
+	)
+	if err != nil {
+		return nil, fmt.Errorf("init notification module: %w", err)
+	}
+
+	bus.Subscribe(events.DepositConfirmed, notifMod.Service.HandleDepositConfirmed)
+	bus.Subscribe(events.WithdrawCompleted, notifMod.Service.HandleWithdrawCompleted)
+	bus.Subscribe(events.WithdrawFailed, notifMod.Service.HandleWithdrawFailed)
+	bus.Subscribe(events.SettlementCreated, notifMod.Service.HandleSettlementCreated)
+
 	return &App{
-		Config:           cfg,
-		DB:               db,
-		Redis:            rdb,
-		Logger:           log,
-		EventBus:         bus,
-		JWTManager:       jwtMgr,
-		AuthModule:       auth.NewModule(db, rdb, jwtMgr, bus, cfg, log),
-		WalletModule:     walletMod,
-		PremiumModule:    premium.NewModule(db, log),
-		DashboardModule:  dashboard.NewModule(db, log),
-		InvestmentModule: investment.NewModule(db, bus, log),
-		TradeLogModule:   tradelog.NewModule(db, log),
-		SettlementModule: settlement.NewModule(db, log),
-		SettingsModule:   settings.NewModule(db, log),
+		Config:             cfg,
+		DB:                 db,
+		Redis:              rdb,
+		Logger:             log,
+		EventBus:           bus,
+		JWTManager:         jwtMgr,
+		AuthModule:         authMod,
+		WalletModule:       walletMod,
+		PremiumModule:      premium.NewModule(db, log),
+		DashboardModule:    dashboard.NewModule(db, log),
+		InvestmentModule:   investment.NewModule(db, bus, log),
+		TradeLogModule:     tradelog.NewModule(db, log),
+		SettlementModule:   settlement.NewModule(db, log),
+		SettingsModule:     settingsMod,
+		NotificationModule: notifMod,
 	}, nil
 }
