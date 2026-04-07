@@ -1,0 +1,23 @@
+FROM node:20-alpine AS builder
+
+WORKDIR /app
+
+RUN corepack enable && corepack prepare pnpm@latest --activate
+
+COPY admin/package.json admin/pnpm-lock.yaml* ./
+RUN pnpm install --frozen-lockfile || pnpm install
+
+COPY admin/ .
+ARG NEXT_PUBLIC_API_URL=/api/v1/admin
+ENV NEXT_PUBLIC_API_URL=$NEXT_PUBLIC_API_URL
+RUN pnpm build
+
+FROM node:20-alpine
+WORKDIR /app
+COPY --from=builder /app/.next/standalone ./
+COPY --from=builder /app/.next/static ./.next/static
+COPY --from=builder /app/public ./public 2>/dev/null || true
+
+EXPOSE 3001
+ENV PORT=3001
+CMD ["node", "server.js"]

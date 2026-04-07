@@ -10,6 +10,8 @@ services:
         condition: service_healthy
       front:
         condition: service_started
+      admin:
+        condition: service_started
     restart: unless-stopped
 
   server:
@@ -56,6 +58,16 @@ services:
         - NEXT_PUBLIC_API_URL=${NEXT_PUBLIC_API_URL:-/api/v1}
         - NEXT_PUBLIC_WS_URL=${NEXT_PUBLIC_WS_URL:-}
         - NEXT_PUBLIC_GOOGLE_CLIENT_ID=${NEXT_PUBLIC_GOOGLE_CLIENT_ID:-}
+    depends_on:
+      - server
+    restart: unless-stopped
+
+  admin:
+    build:
+      context: ..
+      dockerfile: deployments/Dockerfile.admin
+      args:
+        - NEXT_PUBLIC_API_URL=${NEXT_PUBLIC_ADMIN_API_URL:-/api/v1/admin}
     depends_on:
       - server
     restart: unless-stopped
