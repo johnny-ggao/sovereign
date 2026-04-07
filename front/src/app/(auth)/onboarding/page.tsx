@@ -4,12 +4,12 @@ import { useRouter } from "next/navigation"
 import { useAuthStore } from "@/stores/auth-store"
 import { useT } from "@/hooks/use-t"
 import { Button } from "@/components/ui/button"
-import { Fingerprint, Wallet, Rocket, ArrowRight, X } from "lucide-react"
+import { Wallet, Rocket, ArrowRight, X } from "lucide-react"
 
 const steps = [
   {
     num: "01",
-    icon: Fingerprint,
+    icon: Wallet,
     titleKey: "onboarding.step1Title",
     descKey: "onboarding.step1Desc",
     color: "text-primary",
@@ -17,19 +17,11 @@ const steps = [
   },
   {
     num: "02",
-    icon: Wallet,
+    icon: Rocket,
     titleKey: "onboarding.step2Title",
     descKey: "onboarding.step2Desc",
     color: "text-success",
     bg: "bg-success/10",
-  },
-  {
-    num: "03",
-    icon: Rocket,
-    titleKey: "onboarding.step3Title",
-    descKey: "onboarding.step3Desc",
-    color: "text-chart-3",
-    bg: "bg-chart-3/10",
   },
 ]
 
