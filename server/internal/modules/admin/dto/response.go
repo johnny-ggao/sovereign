@@ -107,3 +107,29 @@ type UserTrendItem struct {
 	Date  string `json:"date"`
 	Count int64  `json:"count"`
 }
+
+type TradeListItem struct {
+	ID           string `json:"id"`
+	Pair         string `json:"pair"`
+	BuyExchange  string `json:"buy_exchange"`
+	SellExchange string `json:"sell_exchange"`
+	BuyPrice     string `json:"buy_price"`
+	SellPrice    string `json:"sell_price"`
+	Amount       string `json:"amount"`
+	PremiumPct   string `json:"premium_pct"`
+	PnL          string `json:"pnl"`
+	Fee          string `json:"fee"`
+	ExecutedAt   string `json:"executed_at"`
+}
+
+type TradeStats struct {
+	PnL1D         string `json:"pnl_1d"`
+	PnL7D         string `json:"pnl_7d"`
+	PnL30D        string `json:"pnl_30d"`
+	UserProfit1D  string `json:"user_profit_1d"`
+	UserProfit7D  string `json:"user_profit_7d"`
+	UserProfit30D string `json:"user_profit_30d"`
+	TradeCount1D  int64  `json:"trade_count_1d"`
+	TradeCount7D  int64  `json:"trade_count_7d"`
+	TradeCount30D int64  `json:"trade_count_30d"`
+}

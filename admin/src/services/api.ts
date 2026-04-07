@@ -125,3 +125,23 @@ export async function deleteAdmin(id: string) {
     method: 'DELETE',
   });
 }
+
+/** Trades */
+export async function getTrades(params: {
+  page?: number;
+  limit?: number;
+  pair?: string;
+  date_from?: string;
+  date_to?: string;
+}) {
+  return request<API.ApiResponse<API.TradeListItem[]>>('/trades', {
+    method: 'GET',
+    params,
+  });
+}
+
+export async function getTradeStats() {
+  return request<API.ApiResponse<API.TradeStats>>('/trades/stats', {
+    method: 'GET',
+  });
+}

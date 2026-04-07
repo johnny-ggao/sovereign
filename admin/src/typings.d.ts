@@ -125,4 +125,30 @@ declare namespace API {
     error?: { code: string; message: string };
     meta?: { total: number; page: number; per_page: number };
   }
+
+  interface TradeListItem {
+    id: string;
+    pair: string;
+    buy_exchange: string;
+    sell_exchange: string;
+    buy_price: string;
+    sell_price: string;
+    amount: string;
+    premium_pct: string;
+    pnl: string;
+    fee: string;
+    executed_at: string;
+  }
+
+  interface TradeStats {
+    pnl_1d: string;
+    pnl_7d: string;
+    pnl_30d: string;
+    user_profit_1d: string;
+    user_profit_7d: string;
+    user_profit_30d: string;
+    trade_count_1d: number;
+    trade_count_7d: number;
+    trade_count_30d: number;
+  }
 }
