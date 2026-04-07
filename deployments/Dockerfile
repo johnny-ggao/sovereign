@@ -16,6 +16,7 @@ WORKDIR /app
 COPY --from=builder /bin/server .
 COPY server/config/config.yaml config/
 COPY server/migrations/ migrations/
+COPY server/internal/modules/notification/template/emails/ internal/modules/notification/template/emails/
 
 EXPOSE 8080
 
