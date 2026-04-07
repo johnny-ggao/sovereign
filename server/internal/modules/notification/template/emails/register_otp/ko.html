@@ -1,0 +1,53 @@
+{{define "subject"}}회원가입 인증 코드{{end}}
+{{define "body"}}
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+</head>
+<body style="margin:0;padding:0;background-color:#f4f4f4;font-family:Arial,Helvetica,sans-serif;">
+  <table role="presentation" width="100%" cellpadding="0" cellspacing="0" style="background-color:#f4f4f4;">
+    <tr>
+      <td align="center" style="padding:20px 0;">
+        <table role="presentation" width="600" cellpadding="0" cellspacing="0" style="background-color:#ffffff;border-radius:8px;overflow:hidden;">
+          <!-- Header -->
+          <tr>
+            <td style="background-color:#1a1a2e;padding:24px;text-align:center;">
+              <h1 style="margin:0;color:#ffffff;font-size:24px;">Sovereign Fund</h1>
+            </td>
+          </tr>
+          <!-- Content -->
+          <tr>
+            <td style="padding:32px 24px;">
+              <h2 style="margin:0 0 16px;color:#333333;font-size:20px;">이메일 인증</h2>
+              <p style="margin:0 0 24px;color:#555555;font-size:16px;line-height:1.5;">
+                아래 코드를 사용하여 이메일 주소를 인증하세요. 이 코드는 {{.ExpiresIn}} 후에 만료됩니다.
+              </p>
+              <table role="presentation" width="100%" cellpadding="0" cellspacing="0">
+                <tr>
+                  <td align="center" style="padding:24px 0;">
+                    <span style="display:inline-block;padding:16px 32px;background-color:#1a1a2e;color:#ffffff;font-size:32px;font-weight:bold;letter-spacing:8px;border-radius:8px;">{{.OTPCode}}</span>
+                  </td>
+                </tr>
+              </table>
+              <p style="margin:0;color:#999999;font-size:14px;text-align:center;">
+                계정을 만들지 않으셨다면 이 이메일을 무시해 주세요.
+              </p>
+            </td>
+          </tr>
+          <!-- Footer -->
+          <tr>
+            <td style="padding:16px 24px;background-color:#f8f9fa;text-align:center;">
+              <p style="margin:0;color:#999999;font-size:12px;">
+                본 메일은 자동 발송된 메일입니다. 회신하지 마세요.
+              </p>
+            </td>
+          </tr>
+        </table>
+      </td>
+    </tr>
+  </table>
+</body>
+</html>
+{{end}}
