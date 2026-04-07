@@ -42,14 +42,14 @@ const LoginPage: React.FC = () => {
             currentAdmin: res.data!.admin,
           }));
         });
-        message.success('Login successful');
+        message.success('登录成功');
         const urlParams = new URL(window.location.href).searchParams;
         window.location.href = urlParams.get('redirect') || '/dashboard';
         return;
       }
       setErrorMessage(res.error?.message ?? 'Login failed');
     } catch (error: any) {
-      const errMsg = error?.info?.message ?? error?.message ?? 'Login failed, please try again.';
+      const errMsg = error?.info?.message ?? error?.message ?? '登录失败，请重试';
       setErrorMessage(errMsg);
     }
   };
@@ -57,14 +57,14 @@ const LoginPage: React.FC = () => {
   return (
     <div className={styles.container}>
       <Helmet>
-        <title>Login - Sovereign Admin</title>
+        <title>登录 - Sovereign Admin</title>
       </Helmet>
       <div style={{ flex: '1', padding: '32px 0' }}>
         <LoginForm
           contentStyle={{ minWidth: 280, maxWidth: '75vw' }}
           logo={<img alt="logo" src="/logo.svg" />}
           title="Sovereign Admin"
-          subTitle="Admin Management Portal"
+          subTitle="后台管理系统"
           onFinish={handleSubmit}
         >
           {errorMessage && <LoginMessage content={errorMessage} />}
@@ -74,10 +74,10 @@ const LoginPage: React.FC = () => {
               size: 'large',
               prefix: <UserOutlined />,
             }}
-            placeholder="Email"
+            placeholder="邮箱"
             rules={[
-              { required: true, message: 'Please enter your email' },
-              { type: 'email', message: 'Please enter a valid email' },
+              { required: true, message: '请输入邮箱' },
+              { type: 'email', message: '请输入有效的邮箱' },
             ]}
           />
           <ProFormText.Password
@@ -86,8 +86,8 @@ const LoginPage: React.FC = () => {
               size: 'large',
               prefix: <LockOutlined />,
             }}
-            placeholder="Password"
-            rules={[{ required: true, message: 'Please enter your password' }]}
+            placeholder="密码"
+            rules={[{ required: true, message: '请输入密码' }]}
           />
         </LoginForm>
       </div>

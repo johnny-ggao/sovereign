@@ -12,19 +12,19 @@ const Users: React.FC = () => {
 
   const handleResetPassword = (record: API.UserListItem) => {
     modal.confirm({
-      title: 'Reset Password',
-      content: `Are you sure you want to reset the password for ${record.email}?`,
+      title: '重置密码',
+      content: `确认重置密码：${record.email}？`,
       onOk: async () => {
         try {
           const res = await resetUserPassword(record.id);
           if (res.success && res.data) {
             modal.success({
-              title: 'Password Reset',
-              content: `Temporary password: ${res.data.temporary_password}`,
+              title: '密码已重置',
+              content: `新密码：${res.data.temporary_password}`,
             });
           }
         } catch (error: any) {
-          message.error(error?.message ?? 'Failed to reset password');
+          message.error(error?.message ?? '重置密码失败');
         }
       },
     });
@@ -32,36 +32,36 @@ const Users: React.FC = () => {
 
   const columns: ProColumns<API.UserListItem>[] = [
     {
-      title: 'Email',
+      title: '邮箱',
       dataIndex: 'email',
       copyable: true,
     },
     {
-      title: 'Name',
+      title: '姓名',
       dataIndex: 'full_name',
       search: false,
     },
     {
-      title: 'Balance',
+      title: '余额',
       dataIndex: 'balance',
       search: false,
       render: (_, record) => `$${record.balance}`,
     },
     {
-      title: 'Joined',
+      title: '注册时间',
       dataIndex: 'created_at',
       search: false,
       render: (_, record) => dayjs(record.created_at).format('YYYY-MM-DD'),
     },
     {
-      title: 'Actions',
+      title: '操作',
       valueType: 'option',
       render: (_, record) => [
         <a key="detail" onClick={() => history.push(`/users/${record.id}`)}>
-          Detail
+          详情
         </a>,
         <a key="reset" onClick={() => handleResetPassword(record)}>
-          Reset Password
+          重置密码
         </a>,
       ],
     },
@@ -70,7 +70,7 @@ const Users: React.FC = () => {
   return (
     <PageContainer>
       <ProTable<API.UserListItem>
-        headerTitle="Users"
+        headerTitle="用户管理"
         actionRef={actionRef}
         rowKey="id"
         columns={columns}

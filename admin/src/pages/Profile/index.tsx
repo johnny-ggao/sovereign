@@ -17,7 +17,7 @@ const Profile: React.FC = () => {
 
   const handleChangePassword = async () => {
     if (!oldPassword || !newPassword) {
-      message.error('Please fill in all fields');
+      message.error('请填写所有字段');
       return;
     }
     setLoading(true);
@@ -27,13 +27,13 @@ const Profile: React.FC = () => {
         new_password: newPassword,
       });
       if (res.success) {
-        message.success('Password changed successfully');
+        message.success('密码已修改');
         setPasswordModalOpen(false);
         setOldPassword('');
         setNewPassword('');
       }
     } catch (error: any) {
-      message.error(error?.message ?? 'Failed to change password');
+      message.error(error?.message ?? '密码修改失败');
     } finally {
       setLoading(false);
     }
@@ -54,17 +54,17 @@ const Profile: React.FC = () => {
       <Card
         extra={
           <Button type="primary" onClick={() => setPasswordModalOpen(true)}>
-            Change Password
+            修改密码
           </Button>
         }
       >
         <Descriptions column={{ xs: 1, sm: 2 }}>
-          <Descriptions.Item label="Name">{admin.name}</Descriptions.Item>
-          <Descriptions.Item label="Email">{admin.email}</Descriptions.Item>
-          <Descriptions.Item label="Role">
+          <Descriptions.Item label="姓名">{admin.name}</Descriptions.Item>
+          <Descriptions.Item label="邮箱">{admin.email}</Descriptions.Item>
+          <Descriptions.Item label="角色">
             <Tag color={roleColorMap[admin.role] ?? 'default'}>{admin.role}</Tag>
           </Descriptions.Item>
-          <Descriptions.Item label="Last Login">
+          <Descriptions.Item label="最后登录">
             {admin.last_login
               ? dayjs(admin.last_login).format('YYYY-MM-DD HH:mm')
               : '-'}
@@ -73,7 +73,7 @@ const Profile: React.FC = () => {
       </Card>
 
       <Modal
-        title="Change Password"
+        title="修改密码"
         open={passwordModalOpen}
         onOk={handleChangePassword}
         onCancel={() => {
@@ -85,20 +85,20 @@ const Profile: React.FC = () => {
         okButtonProps={{ disabled: !oldPassword || !newPassword }}
       >
         <div style={{ marginBottom: 16 }}>
-          <label>Current Password:</label>
+          <label>旧密码：</label>
           <Input.Password
             value={oldPassword}
             onChange={(e) => setOldPassword(e.target.value)}
-            placeholder="Enter current password"
+            placeholder="请输入旧密码"
             style={{ marginTop: 8 }}
           />
         </div>
         <div>
-          <label>New Password:</label>
+          <label>新密码：</label>
           <Input.Password
             value={newPassword}
             onChange={(e) => setNewPassword(e.target.value)}
-            placeholder="Enter new password"
+            placeholder="请输入新密码"
             style={{ marginTop: 8 }}
           />
         </div>

@@ -68,9 +68,9 @@ const AvatarDropdown: React.FC<{ children?: React.ReactNode }> = ({ children }) 
         selectedKeys: [],
         onClick: onMenuClick,
         items: [
-          { key: 'profile', icon: <UserOutlined />, label: 'Profile' },
+          { key: 'profile', icon: <UserOutlined />, label: '个人设置' },
           { type: 'divider' as const },
-          { key: 'logout', icon: <LogoutOutlined />, label: 'Logout' },
+          { key: 'logout', icon: <LogoutOutlined />, label: '退出登录' },
         ],
       }}
     >

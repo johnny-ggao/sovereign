@@ -5,11 +5,11 @@ import React, { useEffect, useState } from 'react';
 import { getDashboardStats } from '@/services/api';
 
 const transactionColumns: ColumnsType<API.TransactionInfo> = [
-  { title: 'Type', dataIndex: 'type', key: 'type', render: (t: string) => <Tag>{t}</Tag> },
-  { title: 'Currency', dataIndex: 'currency', key: 'currency' },
-  { title: 'Amount', dataIndex: 'amount', key: 'amount' },
+  { title: '类型', dataIndex: 'type', key: 'type', render: (t: string) => <Tag>{t}</Tag> },
+  { title: '币种', dataIndex: 'currency', key: 'currency' },
+  { title: '金额', dataIndex: 'amount', key: 'amount' },
   {
-    title: 'Status',
+    title: '状态',
     dataIndex: 'status',
     key: 'status',
     render: (s: string) => {
@@ -21,12 +21,12 @@ const transactionColumns: ColumnsType<API.TransactionInfo> = [
       return <Tag color={colorMap[s] ?? 'default'}>{s}</Tag>;
     },
   },
-  { title: 'Time', dataIndex: 'created_at', key: 'created_at' },
+  { title: '日期', dataIndex: 'created_at', key: 'created_at' },
 ];
 
 const trendColumns = [
-  { title: 'Date', dataIndex: 'date', key: 'date' },
-  { title: 'Users', dataIndex: 'count', key: 'count' },
+  { title: '日期', dataIndex: 'date', key: 'date' },
+  { title: '用户数', dataIndex: 'count', key: 'count' },
 ];
 
 const Dashboard: React.FC = () => {
@@ -48,39 +48,39 @@ const Dashboard: React.FC = () => {
       <Row gutter={[16, 16]}>
         <Col xs={24} sm={12} lg={4}>
           <Card loading={loading}>
-            <Statistic title="Total Users" value={stats?.total_users ?? 0} />
+            <Statistic title="总用户数" value={stats?.total_users ?? 0} />
           </Card>
         </Col>
         <Col xs={24} sm={12} lg={4}>
           <Card loading={loading}>
-            <Statistic title="New Users Today" value={stats?.new_users_today ?? 0} />
+            <Statistic title="今日新增" value={stats?.new_users_today ?? 0} />
           </Card>
         </Col>
         <Col xs={24} sm={12} lg={4}>
           <Card loading={loading}>
-            <Statistic title="Total Invested" value={stats?.total_invested ?? '0'} prefix="$" />
+            <Statistic title="投资总额" value={stats?.total_invested ?? '0'} prefix="$" />
           </Card>
         </Col>
         <Col xs={24} sm={12} lg={4}>
           <Card loading={loading}>
-            <Statistic title="Total Deposits" value={stats?.total_deposits ?? '0'} prefix="$" />
+            <Statistic title="充值总额" value={stats?.total_deposits ?? '0'} prefix="$" />
           </Card>
         </Col>
         <Col xs={24} sm={12} lg={4}>
           <Card loading={loading}>
-            <Statistic title="Total Withdrawals" value={stats?.total_withdrawals ?? '0'} prefix="$" />
+            <Statistic title="提现总额" value={stats?.total_withdrawals ?? '0'} prefix="$" />
           </Card>
         </Col>
         <Col xs={24} sm={12} lg={4}>
           <Card loading={loading}>
-            <Statistic title="Active Investments" value={stats?.active_investments ?? 0} />
+            <Statistic title="活跃投资" value={stats?.active_investments ?? 0} />
           </Card>
         </Col>
       </Row>
 
       <Row gutter={[16, 16]} style={{ marginTop: 16 }}>
         <Col xs={24} lg={12}>
-          <Card title="User Trend (Last 7 Days)" loading={loading}>
+          <Card title="新增用户（近7天）" loading={loading}>
             <Table
               columns={trendColumns}
               dataSource={stats?.user_trend ?? []}
@@ -91,7 +91,7 @@ const Dashboard: React.FC = () => {
           </Card>
         </Col>
         <Col xs={24} lg={12}>
-          <Card title="Recent Transactions" loading={loading}>
+          <Card title="近期交易" loading={loading}>
             <Table
               columns={transactionColumns}
               dataSource={stats?.recent_transactions ?? []}

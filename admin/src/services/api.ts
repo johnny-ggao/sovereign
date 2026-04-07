@@ -16,8 +16,8 @@ export async function getMe(options?: { [key: string]: any }) {
 }
 
 export async function changePassword(body: { old_password: string; new_password: string }) {
-  return request<API.ApiResponse<null>>('/auth/password', {
-    method: 'PUT',
+  return request<API.ApiResponse<null>>('/auth/change-password', {
+    method: 'POST',
     data: body,
   });
 }
@@ -81,7 +81,7 @@ export async function adjustBalance(id: string, body: { amount: string; reason: 
 
 /** Admin Users */
 export async function getAdmins() {
-  return request<API.ApiResponse<API.AdminUser[]>>('/admins', {
+  return request<API.ApiResponse<API.AdminUser[]>>('/admin-users', {
     method: 'GET',
   });
 }
@@ -92,21 +92,21 @@ export async function createAdmin(body: {
   name: string;
   role: string;
 }) {
-  return request<API.ApiResponse<API.AdminUser>>('/admins', {
+  return request<API.ApiResponse<API.AdminUser>>('/admin-users', {
     method: 'POST',
     data: body,
   });
 }
 
 export async function updateAdmin(id: string, body: { name?: string; role?: string }) {
-  return request<API.ApiResponse<API.AdminUser>>(`/admins/${id}`, {
+  return request<API.ApiResponse<API.AdminUser>>(`/admin-users/${id}`, {
     method: 'PUT',
     data: body,
   });
 }
 
 export async function deleteAdmin(id: string) {
-  return request<API.ApiResponse<null>>(`/admins/${id}`, {
+  return request<API.ApiResponse<null>>(`/admin-users/${id}`, {
     method: 'DELETE',
   });
 }
