@@ -1,5 +1,6 @@
 import { PageContainer } from '@ant-design/pro-components';
 import { Card, Col, Row, Statistic, Table, Tag } from 'antd';
+import { Area } from '@ant-design/charts';
 import type { ColumnsType } from 'antd/es/table';
 import React, { useEffect, useState } from 'react';
 import { getDashboardStats } from '@/services/api';
@@ -24,10 +25,6 @@ const transactionColumns: ColumnsType<API.TransactionInfo> = [
   { title: '日期', dataIndex: 'created_at', key: 'created_at' },
 ];
 
-const trendColumns = [
-  { title: '日期', dataIndex: 'date', key: 'date' },
-  { title: '用户数', dataIndex: 'count', key: 'count' },
-];
 
 const Dashboard: React.FC = () => {
   const [stats, setStats] = useState<API.DashboardStats | null>(null);
@@ -80,13 +77,18 @@ const Dashboard: React.FC = () => {
 
       <Row gutter={[16, 16]} style={{ marginTop: 16 }}>
         <Col xs={24} lg={12}>
-          <Card title="新增用户（近7天）" loading={loading}>
-            <Table
-              columns={trendColumns}
-              dataSource={stats?.user_trend ?? []}
-              rowKey="date"
-              pagination={false}
-              size="small"
+          <Card title="新增用户（近30天）" loading={loading}>
+            <Area
+              data={stats?.user_trend ?? []}
+              xField="date"
+              yField="count"
+              smooth
+              height={300}
+              axis={{
+                x: { labelFormatter: (v: string) => v.slice(5) },
+                y: { title: '用户数' },
+              }}
+              style={{ fill: 'linear-gradient(-90deg, rgba(24,144,255,0.3) 0%, rgba(24,144,255,0.05) 100%)' }}
             />
           </Card>
         </Col>
