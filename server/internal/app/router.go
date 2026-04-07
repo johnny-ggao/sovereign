@@ -5,6 +5,7 @@ import (
 	"time"
 
 	"github.com/gin-gonic/gin"
+	"github.com/sovereign-fund/sovereign/internal/modules/admin"
 	"github.com/sovereign-fund/sovereign/internal/modules/auth"
 	"github.com/sovereign-fund/sovereign/internal/modules/dashboard"
 	"github.com/sovereign-fund/sovereign/internal/modules/investment"
@@ -62,6 +63,9 @@ func SetupRouter(a *App, ctx context.Context) *gin.Engine {
 		middleware.InternalAuth(a.Config.Internal.APIKey, a.Config.Internal.AllowedIPs),
 	)
 	tradelog.RegisterInternalRoutes(internal, a.TradeLogModule.Handler)
+
+	// Admin panel routes
+	admin.RegisterRoutes(v1, a.AdminModule)
 
 	// 手动触发结算（内部接口）
 	if a.SettlementJob != nil {

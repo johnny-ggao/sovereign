@@ -7,6 +7,7 @@ import (
 
 	"github.com/redis/go-redis/v9"
 	"github.com/sovereign-fund/sovereign/config"
+	"github.com/sovereign-fund/sovereign/internal/modules/admin"
 	"github.com/sovereign-fund/sovereign/internal/modules/auth"
 	authrepo "github.com/sovereign-fund/sovereign/internal/modules/auth/repository"
 	"github.com/sovereign-fund/sovereign/internal/modules/dashboard"
@@ -43,6 +44,7 @@ type App struct {
 	SettlementModule   *settlement.Module
 	SettingsModule     *settings.Module
 	NotificationModule *notification.Module
+	AdminModule        *admin.Module
 	SettlementJob      *worker.SettlementJob
 }
 
@@ -117,6 +119,7 @@ func New(cfg *config.Config) (*App, error) {
 		return nil, fmt.Errorf("init notification module: %w", err)
 	}
 
+	adminMod := admin.NewModule(db, cfg.Admin, log)
 	authMod := auth.NewModule(db, rdb, jwtMgr, bus, cfg, notifMod.Service, log)
 
 	bus.Subscribe(events.DepositConfirmed, notifMod.Service.HandleDepositConfirmed)
@@ -140,5 +143,6 @@ func New(cfg *config.Config) (*App, error) {
 		SettlementModule:   settlement.NewModule(db, log),
 		SettingsModule:     settingsMod,
 		NotificationModule: notifMod,
+		AdminModule:        adminMod,
 	}, nil
 }
