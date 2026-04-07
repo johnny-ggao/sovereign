@@ -10,6 +10,7 @@ import (
 	"github.com/sovereign-fund/sovereign/internal/modules/auth/dto"
 	"github.com/sovereign-fund/sovereign/internal/modules/auth/model"
 	"github.com/sovereign-fund/sovereign/internal/modules/auth/repository"
+	notifsvc "github.com/sovereign-fund/sovereign/internal/modules/notification/service"
 	apperr "github.com/sovereign-fund/sovereign/internal/shared/errors"
 	"github.com/sovereign-fund/sovereign/internal/shared/events"
 	"github.com/sovereign-fund/sovereign/pkg/crypto"
@@ -49,6 +50,7 @@ type authService struct {
 	otpSvc         OTPService
 	googleVerifier GoogleTokenVerifier
 	eventBus       events.Bus
+	notifSvc       notifsvc.NotificationService
 	logger         *slog.Logger
 }
 
@@ -59,6 +61,7 @@ func NewAuthService(
 	otpSvc OTPService,
 	googleVerifier GoogleTokenVerifier,
 	eventBus events.Bus,
+	notifSvc notifsvc.NotificationService,
 	logger *slog.Logger,
 ) AuthService {
 	return &authService{
@@ -68,6 +71,7 @@ func NewAuthService(
 		otpSvc:         otpSvc,
 		googleVerifier: googleVerifier,
 		eventBus:       eventBus,
+		notifSvc:       notifSvc,
 		logger:         logger,
 	}
 }
@@ -86,11 +90,9 @@ func (s *authService) SendRegisterOTP(ctx context.Context, req dto.SendRegisterO
 		return apperr.Wrap(apperr.ErrInternal, err)
 	}
 
-	// TODO: replace with email service
-	s.logger.Info("========== REGISTER OTP ==========",
-		slog.String("email", req.Email),
-		slog.String("code", otp),
-	)
+	if err := s.notifSvc.SendOTP(ctx, req.Email, "", "register_otp", otp, "5 minutes"); err != nil {
+		s.logger.Error("failed to send register OTP email", slog.String("email", req.Email), slog.String("error", err.Error()))
+	}
 
 	return nil
 }
@@ -281,7 +283,7 @@ func (s *authService) GoogleLogin(ctx context.Context, idToken, userAgent, clien
 }
 
 func (s *authService) ForgotPassword(ctx context.Context, email string) error {
-	_, err := s.userRepo.FindByEmail(ctx, email)
+	user, err := s.userRepo.FindByEmail(ctx, email)
 	if err != nil {
 		if errors.Is(err, gorm.ErrRecordNotFound) {
 			return nil
@@ -294,11 +296,13 @@ func (s *authService) ForgotPassword(ctx context.Context, email string) error {
 		return apperr.Wrap(apperr.ErrInternal, err)
 	}
 
-	// TODO: replace with email service
-	s.logger.Info("========== RESET PASSWORD OTP ==========",
-		slog.String("email", email),
-		slog.String("code", otp),
-	)
+	lang := user.Language
+	if lang == "" {
+		lang = "en"
+	}
+	if err := s.notifSvc.SendOTP(ctx, email, lang, "password_reset", otp, "5 minutes"); err != nil {
+		s.logger.Error("failed to send password reset email", slog.String("email", email), slog.String("error", err.Error()))
+	}
 
 	return nil
 }

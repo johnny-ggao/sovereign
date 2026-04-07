@@ -8,6 +8,7 @@ import (
 	"github.com/redis/go-redis/v9"
 	"github.com/sovereign-fund/sovereign/config"
 	"github.com/sovereign-fund/sovereign/internal/modules/auth"
+	authrepo "github.com/sovereign-fund/sovereign/internal/modules/auth/repository"
 	"github.com/sovereign-fund/sovereign/internal/modules/dashboard"
 	"github.com/sovereign-fund/sovereign/internal/modules/investment"
 	"github.com/sovereign-fund/sovereign/internal/modules/notification"
@@ -102,12 +103,12 @@ func New(cfg *config.Config) (*App, error) {
 		return walletMod.Service.InitDepositAddresses(ctx, userID, []string{"BEP20", "TRC20"})
 	})
 
-	authMod := auth.NewModule(db, rdb, jwtMgr, bus, cfg, log)
 	settingsMod := settings.NewModule(db, log)
+	userRepo := authrepo.NewUserRepository(db)
 
 	notifMod, err := notification.NewModule(
 		cfg.Notification,
-		authMod.UserRepo(),
+		userRepo,
 		settingsMod.SettingsRepo(),
 		"internal/modules/notification/template/emails",
 		log,
@@ -115,6 +116,8 @@ func New(cfg *config.Config) (*App, error) {
 	if err != nil {
 		return nil, fmt.Errorf("init notification module: %w", err)
 	}
+
+	authMod := auth.NewModule(db, rdb, jwtMgr, bus, cfg, notifMod.Service, log)
 
 	bus.Subscribe(events.DepositConfirmed, notifMod.Service.HandleDepositConfirmed)
 	bus.Subscribe(events.WithdrawCompleted, notifMod.Service.HandleWithdrawCompleted)
