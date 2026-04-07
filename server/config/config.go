@@ -13,8 +13,7 @@ type Config struct {
 	Cobo     CoboConfig     `yaml:"cobo"`
 	Internal InternalAPIConfig `yaml:"internal"`
 	Exchange ExchangeConfig    `yaml:"exchange"`
-	KYC      KYCConfig      `yaml:"kyc"`
-	Google   GoogleConfig   `yaml:"google"`
+Google   GoogleConfig   `yaml:"google"`
 	Worker   WorkerConfig   `yaml:"worker"`
 	Log          LogConfig          `yaml:"log"`
 	Notification NotificationConfig `yaml:"notification"`
@@ -102,13 +101,6 @@ type ExchangeConfig struct {
 type ExchangeCredentials struct {
 	APIKey    string `yaml:"api_key" env-prefix:"true"`
 	APISecret string `yaml:"api_secret" env-prefix:"true"`
-	BaseURL   string `yaml:"base_url"`
-}
-
-type KYCConfig struct {
-	Provider  string `yaml:"provider"`
-	APIKey    string `yaml:"api_key" env:"KYC_API_KEY"`
-	APISecret string `yaml:"api_secret" env:"KYC_API_SECRET"`
 	BaseURL   string `yaml:"base_url"`
 }
 

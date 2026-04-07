@@ -70,7 +70,6 @@ func Load() (*Config, error) {
 		{"internal", &cfg.Internal},
 		{"worker", &cfg.Worker},
 		{"google", &cfg.Google},
-		{"kyc", &cfg.KYC},
 		{"notification", &cfg.Notification},
 	}
 	for _, sc := range subConfigs {

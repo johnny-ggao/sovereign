@@ -236,8 +236,3 @@ export interface LoginDevice {
   last_login: string
 }
 
-export interface KYCStatus {
-  status: string
-  submit_url?: string
-  message?: string
-}

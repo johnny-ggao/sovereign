@@ -2,7 +2,7 @@
 
 import { useState } from "react"
 import { useSearchParams } from "next/navigation"
-import { useProfile, useUpdateProfile, useSecurityOverview, useNotificationPref, useUpdateNotificationPref, useKYCStatus } from "@/hooks/use-api"
+import { useProfile, useUpdateProfile, useSecurityOverview, useNotificationPref, useUpdateNotificationPref } from "@/hooks/use-api"
 import { api } from "@/lib/api-client"
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card"
 import { Button } from "@/components/ui/button"
@@ -11,8 +11,7 @@ import { Label } from "@/components/ui/label"
 import { Badge } from "@/components/ui/badge"
 import { Separator } from "@/components/ui/separator"
 import { Skeleton } from "@/components/ui/skeleton"
-import { Globe, Smartphone, Trash2, Copy, Check, ShieldCheck, CheckCircle2 } from "lucide-react"
-import { KYCVerification } from "@/components/kyc/kyc-verification"
+import { Globe, Smartphone, Trash2, Copy, Check, ShieldCheck } from "lucide-react"
 import { QRCodeSVG } from "qrcode.react"
 import { formatDateTime } from "@/lib/format"
 import { toast } from "sonner"
@@ -30,7 +29,6 @@ export default function SettingsPage() {
   const { data: security } = useSecurityOverview()
   const { data: notifPref } = useNotificationPref()
   const updateNotif = useUpdateNotificationPref()
-  const { data: kyc, refetch: refetchKYC } = useKYCStatus()
   const [profileForm, setProfileForm] = useState({ full_name: "", phone: "" })
   const [passwordForm, setPasswordForm] = useState({ current_password: "", new_password: "" })
   const [twoFASetup, setTwoFASetup] = useState<{ secret: string; qr_code_url: string } | null>(null)
@@ -342,39 +340,6 @@ export default function SettingsPage() {
         </Card>
       )}
 
-      {tab === "kyc" && (
-        <>
-          {kyc?.status === "pending" || kyc?.status === "rejected" ? (
-            <KYCVerification onComplete={refetchKYC} />
-          ) : (
-            <Card className="glass border-0 rounded-2xl">
-              <CardHeader>
-                <CardTitle>{t("settings.kyc")}</CardTitle>
-                <CardDescription>{t("settings.kycStatus")}</CardDescription>
-              </CardHeader>
-              <CardContent>
-                <div className="flex items-center gap-4">
-                  <Badge
-                    variant="outline"
-                    className={
-                      kyc?.status === "approved"
-                        ? "border-success/30 text-success"
-                        : "border-chart-3/30 text-chart-3"
-                    }
-                  >
-                    {kyc?.status === "approved" ? (
-                      <><CheckCircle2 className="mr-1 h-3 w-3" />{t("settings.kycApproved")}</>
-                    ) : (
-                      t("settings.kycSubmitted")
-                    )}
-                  </Badge>
-                  <p className="text-sm text-muted-foreground">{kyc?.message}</p>
-                </div>
-              </CardContent>
-            </Card>
-          )}
-        </>
-      )}
     </div>
   )
 }

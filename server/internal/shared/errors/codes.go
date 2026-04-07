@@ -22,13 +22,6 @@ var (
 	ErrWithdrawLimitExceeded = New(http.StatusUnprocessableEntity, "WALLET_WITHDRAW_LIMIT", "withdrawal limit exceeded")
 )
 
-// KYC
-var (
-	ErrKYCRequired = New(http.StatusForbidden, "KYC_REQUIRED", "KYC verification required")
-	ErrKYCPending  = New(http.StatusUnprocessableEntity, "KYC_PENDING", "KYC verification pending")
-	ErrKYCRejected = New(http.StatusForbidden, "KYC_REJECTED", "KYC verification rejected")
-)
-
 // Investment
 var (
 	ErrInvestmentNotFound = New(http.StatusNotFound, "INVESTMENT_NOT_FOUND", "investment not found")

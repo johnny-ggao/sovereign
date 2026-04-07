@@ -109,17 +109,10 @@ export default function OnboardingPage() {
           <Button
             className="w-full"
             size="lg"
-            onClick={() => router.push("/settings?tab=kyc")}
-          >
-            {t("onboarding.completeKyc")}
-            <ArrowRight className="ml-2 h-4 w-4" />
-          </Button>
-          <Button
-            variant="ghost"
-            className="w-full text-muted-foreground"
             onClick={() => router.push("/dashboard")}
           >
-            {t("onboarding.maybeLater")}
+            {t("onboarding.getStarted")}
+            <ArrowRight className="ml-2 h-4 w-4" />
           </Button>
         </div>
       </div>

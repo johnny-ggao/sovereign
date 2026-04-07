@@ -155,26 +155,6 @@ func (h *SettingsHandler) UpdateLanguage(c *gin.Context) {
 	response.OK(c, gin.H{"message": "language updated"})
 }
 
-func (h *SettingsHandler) GetKYCStatus(c *gin.Context) {
-	userID := c.GetString("user_id")
-	resp, err := h.svc.GetKYCStatus(c.Request.Context(), userID)
-	if err != nil {
-		handleError(c, err)
-		return
-	}
-	response.OK(c, resp)
-}
-
-func (h *SettingsHandler) SubmitKYC(c *gin.Context) {
-	userID := c.GetString("user_id")
-	resp, err := h.svc.SubmitKYC(c.Request.Context(), userID)
-	if err != nil {
-		handleError(c, err)
-		return
-	}
-	response.OK(c, resp)
-}
-
 func handleError(c *gin.Context, err error) {
 	var appErr *apperr.AppError
 	if errors.As(err, &appErr) {

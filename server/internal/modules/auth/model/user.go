@@ -30,9 +30,3 @@ func (u *User) BeforeCreate(_ *gorm.DB) error {
 	return nil
 }
 
-const (
-	KYCStatusPending   = "pending"
-	KYCStatusSubmitted = "submitted"
-	KYCStatusApproved  = "approved"
-	KYCStatusRejected  = "rejected"
-)

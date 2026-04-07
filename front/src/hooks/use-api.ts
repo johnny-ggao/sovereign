@@ -16,7 +16,6 @@ import type {
   SettlementList,
   NotificationPref,
   SecurityOverview,
-  KYCStatus,
   UserProfile,
 } from "@/types/api"
 
@@ -251,9 +250,3 @@ export function useSecurityOverview() {
   })
 }
 
-export function useKYCStatus() {
-  return useQuery({
-    queryKey: ["kyc"],
-    queryFn: () => api.get<KYCStatus>("/settings/kyc"),
-  })
-}

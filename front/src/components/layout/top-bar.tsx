@@ -15,7 +15,6 @@ import {
   User,
   Shield,
   Bell,
-  FileCheck,
   Globe,
   LogOut,
   ChevronDown,
@@ -79,10 +78,6 @@ export function TopBar() {
           <DropdownMenuItem onClick={() => router.push("/settings?tab=notifications")}>
             <Bell className="mr-2 h-4 w-4" />
             {t("userCenter.notifications")}
-          </DropdownMenuItem>
-          <DropdownMenuItem onClick={() => router.push("/settings?tab=kyc")}>
-            <FileCheck className="mr-2 h-4 w-4" />
-            {t("userCenter.kyc")}
           </DropdownMenuItem>
           <DropdownMenuItem onClick={() => router.push("/settings?tab=profile")}>
             <Globe className="mr-2 h-4 w-4" />

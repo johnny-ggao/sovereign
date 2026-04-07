@@ -32,8 +32,6 @@ type SettingsService interface {
 
 	UpdateLanguage(ctx context.Context, userID string, req dto.UpdateLanguageRequest) error
 
-	GetKYCStatus(ctx context.Context, userID string) (*dto.KYCStatusResponse, error)
-	SubmitKYC(ctx context.Context, userID string) (*dto.KYCStatusResponse, error)
 }
 
 type settingsService struct {
@@ -292,52 +290,6 @@ func (s *settingsService) UpdateLanguage(ctx context.Context, userID string, req
 		return apperr.Wrap(apperr.ErrInternal, err)
 	}
 	return nil
-}
-
-func (s *settingsService) GetKYCStatus(ctx context.Context, userID string) (*dto.KYCStatusResponse, error) {
-	user, err := s.userRepo.FindByID(ctx, userID)
-	if err != nil {
-		return nil, apperr.Wrap(apperr.ErrInternal, err)
-	}
-
-	resp := &dto.KYCStatusResponse{Status: user.KYCStatus}
-
-	switch user.KYCStatus {
-	case authModel.KYCStatusPending:
-		resp.Message = "KYC verification not started"
-		resp.SubmitURL = "/settings/kyc/submit"
-	case authModel.KYCStatusSubmitted:
-		resp.Message = "KYC verification under review"
-	case authModel.KYCStatusApproved:
-		resp.Message = "KYC verified"
-	case authModel.KYCStatusRejected:
-		resp.Message = "KYC rejected, please resubmit"
-		resp.SubmitURL = "/settings/kyc/submit"
-	}
-
-	return resp, nil
-}
-
-func (s *settingsService) SubmitKYC(ctx context.Context, userID string) (*dto.KYCStatusResponse, error) {
-	user, err := s.userRepo.FindByID(ctx, userID)
-	if err != nil {
-		return nil, apperr.Wrap(apperr.ErrInternal, err)
-	}
-
-	if user.KYCStatus != authModel.KYCStatusPending && user.KYCStatus != authModel.KYCStatusRejected {
-		return nil, apperr.New(400, "KYC_INVALID_STATE", "KYC cannot be submitted in current state")
-	}
-
-	updated := *user
-	updated.KYCStatus = authModel.KYCStatusSubmitted
-	if err := s.userRepo.Update(ctx, &updated); err != nil {
-		return nil, apperr.Wrap(apperr.ErrInternal, err)
-	}
-
-	return &dto.KYCStatusResponse{
-		Status:  authModel.KYCStatusSubmitted,
-		Message: "KYC verification under review",
-	}, nil
 }
 
 func toProfileResponse(u *authModel.User) *dto.ProfileResponse {

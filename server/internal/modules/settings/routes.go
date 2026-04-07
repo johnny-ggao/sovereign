@@ -27,8 +27,5 @@ func RegisterRoutes(rg *gin.RouterGroup, h *handler.SettingsHandler) {
 		// Language
 		s.PUT("/language", h.UpdateLanguage)
 
-		// KYC
-		s.GET("/kyc", h.GetKYCStatus)
-		s.POST("/kyc/submit", h.SubmitKYC)
 	}
 }

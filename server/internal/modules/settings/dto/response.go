@@ -41,8 +41,3 @@ type NotificationPrefResponse struct {
 	PremiumThreshold float64 `json:"premium_threshold"`
 }
 
-type KYCStatusResponse struct {
-	Status    string `json:"status"`
-	SubmitURL string `json:"submit_url,omitempty"`
-	Message   string `json:"message,omitempty"`
-}
