@@ -36,12 +36,21 @@ const LoginPage: React.FC = () => {
       if (res.success && res.data) {
         localStorage.setItem('token', res.data.token);
         localStorage.setItem('admin', JSON.stringify(res.data.admin));
+        localStorage.setItem(
+          'must_change_password',
+          String(res.data.must_change_password),
+        );
         flushSync(() => {
           setInitialState((s) => ({
             ...s,
             currentAdmin: res.data!.admin,
           }));
         });
+        if (res.data.must_change_password) {
+          message.warning('首次登录请修改密码');
+          window.location.href = '/change-password';
+          return;
+        }
         message.success('登录成功');
         const urlParams = new URL(window.location.href).searchParams;
         window.location.href = urlParams.get('redirect') || '/dashboard';
@@ -49,7 +58,8 @@ const LoginPage: React.FC = () => {
       }
       setErrorMessage(res.error?.message ?? 'Login failed');
     } catch (error: any) {
-      const errMsg = error?.info?.message ?? error?.message ?? '登录失败，请重试';
+      const errMsg =
+        error?.info?.message ?? error?.message ?? '登录失败，请重试';
       setErrorMessage(errMsg);
     }
   };

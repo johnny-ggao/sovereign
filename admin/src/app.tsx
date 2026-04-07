@@ -3,7 +3,6 @@ import type { Settings as LayoutSettings } from '@ant-design/pro-components';
 import type { RequestConfig, RunTimeLayoutConfig } from '@umijs/max';
 import { history, useModel } from '@umijs/max';
 import type { MenuProps } from 'antd';
-import { Spin } from 'antd';
 import React from 'react';
 import { flushSync } from 'react-dom';
 import HeaderDropdown from '@/components/HeaderDropdown';
@@ -13,6 +12,7 @@ import { getMe } from '@/services/api';
 import '@ant-design/v5-patch-for-react-19';
 
 const loginPath = '/user/login';
+const changePasswordPath = '/change-password';
 
 export async function getInitialState(): Promise<{
   settings?: Partial<LayoutSettings>;
@@ -29,6 +29,7 @@ export async function getInitialState(): Promise<{
     } catch (_error) {
       localStorage.removeItem('token');
       localStorage.removeItem('admin');
+      localStorage.removeItem('must_change_password');
       history.push(loginPath);
     }
   }
@@ -54,6 +55,7 @@ const AvatarDropdown: React.FC<{ children?: React.ReactNode }> = ({ children }) 
       });
       localStorage.removeItem('token');
       localStorage.removeItem('admin');
+      localStorage.removeItem('must_change_password');
       history.replace({ pathname: loginPath });
       return;
     }
@@ -92,6 +94,15 @@ export const layout: RunTimeLayoutConfig = ({ initialState }) => {
       const { location } = history;
       if (!initialState?.currentAdmin && location.pathname !== loginPath) {
         history.push(loginPath);
+        return;
+      }
+      const mustChange = localStorage.getItem('must_change_password');
+      if (
+        mustChange === 'true' &&
+        location.pathname !== changePasswordPath &&
+        location.pathname !== loginPath
+      ) {
+        history.push(changePasswordPath);
       }
     },
     menuHeaderRender: undefined,

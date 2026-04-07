@@ -24,6 +24,7 @@ declare namespace API {
     name: string;
     role: 'super_admin' | 'operator' | 'viewer';
     is_active: boolean;
+    must_change_password: boolean;
     last_login: string | null;
     created_at: string;
   }
@@ -32,6 +33,7 @@ declare namespace API {
     token: string;
     expires_at: number;
     admin: AdminUser;
+    must_change_password: boolean;
   }
 
   interface UserListItem {

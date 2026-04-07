@@ -6,6 +6,11 @@ export default [
       { name: 'login', path: '/user/login', component: './Login' },
     ],
   },
+  {
+    path: '/change-password',
+    component: './ChangePassword',
+    layout: false,
+  },
   { path: '/dashboard', name: '数据概览', icon: 'dashboard', component: './Dashboard' },
   { path: '/users', name: '用户管理', icon: 'team', component: './Users' },
   { path: '/investments', name: '投资管理', icon: 'fund', component: './Investments' },

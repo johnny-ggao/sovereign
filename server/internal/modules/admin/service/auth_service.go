@@ -63,9 +63,10 @@ func (s *authService) Login(ctx context.Context, req dto.LoginRequest) (*dto.Log
 	s.logger.Info("admin login", slog.String("admin_id", admin.ID), slog.String("email", admin.Email))
 
 	return &dto.LoginResponse{
-		Token:     token,
-		ExpiresAt: expiresAt,
-		Admin:     toAdminResponse(admin),
+		Token:              token,
+		ExpiresAt:          expiresAt,
+		Admin:              toAdminResponse(admin),
+		MustChangePassword: admin.MustChangePassword,
 	}, nil
 }
 
@@ -87,6 +88,7 @@ func (s *authService) ChangePassword(ctx context.Context, adminID string, req dt
 
 	updated := *admin
 	updated.PasswordHash = hash
+	updated.MustChangePassword = false
 	if err := s.repo.Update(ctx, &updated); err != nil {
 		return fmt.Errorf("update password: %w", err)
 	}

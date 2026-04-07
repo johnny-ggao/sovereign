@@ -3,9 +3,10 @@ package dto
 import "time"
 
 type LoginResponse struct {
-	Token     string        `json:"token"`
-	ExpiresAt int64         `json:"expires_at"`
-	Admin     AdminResponse `json:"admin"`
+	Token              string        `json:"token"`
+	ExpiresAt          int64         `json:"expires_at"`
+	Admin              AdminResponse `json:"admin"`
+	MustChangePassword bool          `json:"must_change_password"`
 }
 
 type AdminResponse struct {
