@@ -84,6 +84,7 @@ export async function getInvestments(params: {
   page?: number;
   limit?: number;
   search?: string;
+  status?: string;
   sort_by?: string;
   sort_order?: string;
 }) {

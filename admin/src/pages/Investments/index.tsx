@@ -43,7 +43,12 @@ const columns: ProColumns<API.InvestmentListItem>[] = [
   {
     title: '状态',
     dataIndex: 'status',
-    hideInSearch: true,
+    valueType: 'select',
+    valueEnum: {
+      active: { text: '运行中', status: 'Processing' },
+      stopping: { text: '停止中', status: 'Warning' },
+      redeemed: { text: '已赎回', status: 'Default' },
+    },
     render: (_, r) => (
       <Tag color={statusColors[r.status] ?? 'default'}>{statusLabels[r.status] ?? r.status}</Tag>
     ),
@@ -85,6 +90,7 @@ const InvestmentsPage: React.FC = () => {
             page: params.current ?? 1,
             limit: params.pageSize ?? 20,
             search: params.search ?? '',
+            status: params.status ?? '',
             sort_by: sortBy ?? 'created_at',
             sort_order: sortOrder ?? 'desc',
           });

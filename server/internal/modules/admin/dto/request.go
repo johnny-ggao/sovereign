@@ -46,6 +46,7 @@ type InvestmentListQuery struct {
 	Page      int    `form:"page,default=1"`
 	Limit     int    `form:"limit,default=20"`
 	Search    string `form:"search"`
+	Status    string `form:"status"`
 	SortBy    string `form:"sort_by,default=created_at"`
 	SortOrder string `form:"sort_order,default=desc"`
 }

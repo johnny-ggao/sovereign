@@ -283,6 +283,10 @@ func (s *userService) ListInvestments(ctx context.Context, query dto.InvestmentL
 		db = db.Where("users.email ILIKE ? OR investments.user_id = ?", pattern, query.Search)
 	}
 
+	if query.Status != "" {
+		db = db.Where("investments.status = ?", query.Status)
+	}
+
 	var total int64
 	if err := db.Count(&total).Error; err != nil {
 		return nil, 0, fmt.Errorf("count investments: %w", err)
