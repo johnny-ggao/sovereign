@@ -37,6 +37,12 @@ func RegisterRoutes(r *gin.RouterGroup, m *Module) {
 		m.DashboardHandler.Stats,
 	)
 
+	// Investments
+	protected.GET("/investments",
+		middleware.RequireRole(model.RoleSuperAdmin, model.RoleOperator, model.RoleViewer),
+		m.UserHandler.ListInvestments,
+	)
+
 	// User management
 	users := protected.Group("/users")
 	{

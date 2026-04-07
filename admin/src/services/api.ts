@@ -79,6 +79,20 @@ export async function adjustBalance(id: string, body: { amount: string; reason: 
   });
 }
 
+/** Investments */
+export async function getInvestments(params: {
+  page?: number;
+  limit?: number;
+  search?: string;
+  sort_by?: string;
+  sort_order?: string;
+}) {
+  return request<API.ApiResponse<API.InvestmentListItem[]>>('/investments', {
+    method: 'GET',
+    params,
+  });
+}
+
 /** Admin Users */
 export async function getAdmins() {
   return request<API.ApiResponse<API.AdminUser[]>>('/admin-users', {

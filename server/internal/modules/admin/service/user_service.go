@@ -24,6 +24,7 @@ type UserService interface {
 	Enable(ctx context.Context, userID string) error
 	ResetPassword(ctx context.Context, userID string) (string, error)
 	AdjustBalance(ctx context.Context, userID string, req dto.AdjustBalanceRequest, adminID string) error
+	ListInvestments(ctx context.Context, query dto.InvestmentListQuery) ([]dto.InvestmentListItem, int64, error)
 }
 
 type userService struct {
@@ -258,6 +259,66 @@ func (s *userService) AdjustBalance(ctx context.Context, userID string, req dto.
 	)
 
 	return nil
+}
+
+func (s *userService) ListInvestments(ctx context.Context, query dto.InvestmentListQuery) ([]dto.InvestmentListItem, int64, error) {
+	type investmentRow struct {
+		ID        string          `gorm:"column:id"`
+		UserID    string          `gorm:"column:user_id"`
+		UserEmail string          `gorm:"column:user_email"`
+		Amount    decimal.Decimal `gorm:"column:amount"`
+		Currency  string          `gorm:"column:currency"`
+		Status    string          `gorm:"column:status"`
+		NetReturn decimal.Decimal `gorm:"column:net_return"`
+		StartDate time.Time       `gorm:"column:start_date"`
+		CreatedAt time.Time       `gorm:"column:created_at"`
+	}
+
+	db := s.db.WithContext(ctx).Table("investments").
+		Select("investments.id, investments.user_id, users.email as user_email, investments.amount, investments.currency, investments.status, investments.net_return, investments.start_date, investments.created_at").
+		Joins("LEFT JOIN users ON users.id = investments.user_id")
+
+	if query.Search != "" {
+		pattern := "%" + query.Search + "%"
+		db = db.Where("users.email ILIKE ? OR investments.user_id = ?", pattern, query.Search)
+	}
+
+	var total int64
+	if err := db.Count(&total).Error; err != nil {
+		return nil, 0, fmt.Errorf("count investments: %w", err)
+	}
+
+	sortBy := "investments.created_at"
+	if query.SortBy == "amount" {
+		sortBy = "investments.amount"
+	}
+	sortOrder := "DESC"
+	if query.SortOrder == "asc" {
+		sortOrder = "ASC"
+	}
+
+	offset := (query.Page - 1) * query.Limit
+	var rows []investmentRow
+	if err := db.Order(sortBy + " " + sortOrder).Offset(offset).Limit(query.Limit).Find(&rows).Error; err != nil {
+		return nil, 0, fmt.Errorf("find investments: %w", err)
+	}
+
+	items := make([]dto.InvestmentListItem, len(rows))
+	for i, r := range rows {
+		items[i] = dto.InvestmentListItem{
+			ID:        r.ID,
+			UserID:    r.UserID,
+			UserEmail: r.UserEmail,
+			Amount:    r.Amount.StringFixed(2),
+			Currency:  r.Currency,
+			Status:    r.Status,
+			NetReturn: r.NetReturn.StringFixed(2),
+			StartDate: r.StartDate.Format("2006-01-02"),
+			CreatedAt: r.CreatedAt.Format(time.RFC3339),
+		}
+	}
+
+	return items, total, nil
 }
 
 func (s *userService) calcUserBalance(ctx context.Context, userID string) decimal.Decimal {

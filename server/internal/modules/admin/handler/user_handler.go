@@ -110,6 +110,33 @@ func (h *UserHandler) ResetPassword(c *gin.Context) {
 	response.OK(c, gin.H{"temporary_password": tempPassword})
 }
 
+func (h *UserHandler) ListInvestments(c *gin.Context) {
+	var query dto.InvestmentListQuery
+	if err := c.ShouldBindQuery(&query); err != nil {
+		response.Fail(c, http.StatusBadRequest, "INVALID_QUERY", err.Error())
+		return
+	}
+
+	if query.Page < 1 {
+		query.Page = 1
+	}
+	if query.Limit < 1 || query.Limit > 100 {
+		query.Limit = 20
+	}
+
+	items, total, err := h.svc.ListInvestments(c.Request.Context(), query)
+	if err != nil {
+		response.Fail(c, http.StatusInternalServerError, "INVESTMENT_LIST_FAILED", err.Error())
+		return
+	}
+
+	response.Paginated(c, items, response.Meta{
+		Total:   total,
+		Page:    query.Page,
+		PerPage: query.Limit,
+	})
+}
+
 func (h *UserHandler) AdjustBalance(c *gin.Context) {
 	userID := c.Param("id")
 	adminID := c.GetString("admin_id")

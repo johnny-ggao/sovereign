@@ -80,6 +80,18 @@ type SettlementInfo struct {
 	SettledAt string `json:"settled_at"`
 }
 
+type InvestmentListItem struct {
+	ID        string `json:"id"`
+	UserID    string `json:"user_id"`
+	UserEmail string `json:"user_email"`
+	Amount    string `json:"amount"`
+	Currency  string `json:"currency"`
+	Status    string `json:"status"`
+	NetReturn string `json:"net_return"`
+	StartDate string `json:"start_date"`
+	CreatedAt string `json:"created_at"`
+}
+
 type DashboardStats struct {
 	TotalUsers         int64             `json:"total_users"`
 	NewUsersToday      int64             `json:"new_users_today"`

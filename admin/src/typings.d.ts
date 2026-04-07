@@ -96,6 +96,18 @@ declare namespace API {
     settled_at: string;
   }
 
+  interface InvestmentListItem {
+    id: string;
+    user_id: string;
+    user_email: string;
+    amount: string;
+    currency: string;
+    status: string;
+    net_return: string;
+    start_date: string;
+    created_at: string;
+  }
+
   interface DashboardStats {
     total_users: number;
     new_users_today: number;
