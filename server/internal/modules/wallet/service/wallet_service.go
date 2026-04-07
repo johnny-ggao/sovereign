@@ -466,8 +466,16 @@ func (s *walletService) HandleWebhook(ctx context.Context, payload cobo.WebhookP
 		}
 
 		s.eventBus.Publish(ctx, events.Event{
-			Type:    events.WithdrawCompleted,
-			Payload: map[string]string{"user_id": tx.UserID, "transaction_id": tx.ID},
+			Type: events.WithdrawCompleted,
+			Payload: map[string]string{
+				"user_id":        tx.UserID,
+				"transaction_id": tx.ID,
+				"amount":         tx.Amount.String(),
+				"currency":       tx.Currency,
+				"network":        tx.Network,
+				"to_address":     tx.Address,
+				"tx_hash":        payload.TxHash,
+			},
 		})
 	}
 
@@ -486,8 +494,14 @@ func (s *walletService) HandleWebhook(ctx context.Context, payload cobo.WebhookP
 		}
 
 		s.eventBus.Publish(ctx, events.Event{
-			Type:    events.WithdrawFailed,
-			Payload: map[string]string{"user_id": tx.UserID, "transaction_id": tx.ID},
+			Type: events.WithdrawFailed,
+			Payload: map[string]string{
+				"user_id":        tx.UserID,
+				"transaction_id": tx.ID,
+				"amount":         tx.Amount.String(),
+				"currency":       tx.Currency,
+				"reason":         "Transaction failed on chain",
+			},
 		})
 	}
 
@@ -599,6 +613,8 @@ func (s *walletService) creditDeposit(ctx context.Context, userID string, payloa
 			"user_id":  userID,
 			"currency": payload.Currency,
 			"amount":   payload.Amount.String(),
+			"network":  payload.Network,
+			"tx_hash":  payload.TxHash,
 		},
 	})
 
