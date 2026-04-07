@@ -16,7 +16,8 @@ type Config struct {
 	KYC      KYCConfig      `yaml:"kyc"`
 	Google   GoogleConfig   `yaml:"google"`
 	Worker   WorkerConfig   `yaml:"worker"`
-	Log      LogConfig      `yaml:"log"`
+	Log          LogConfig          `yaml:"log"`
+	Notification NotificationConfig `yaml:"notification"`
 }
 
 type GoogleConfig struct {
@@ -125,6 +126,13 @@ type WorkerConfig struct {
 type LogConfig struct {
 	Level  string `yaml:"level"`
 	Format string `yaml:"format"`
+}
+
+type NotificationConfig struct {
+	UseMock     bool   `yaml:"use_mock"`
+	FromAddress string `yaml:"from_address"`
+	FromName    string `yaml:"from_name"`
+	AWSRegion   string `yaml:"aws_region"`
 }
 
 func intToStr(n int) string {

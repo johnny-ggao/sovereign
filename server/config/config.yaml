@@ -62,3 +62,9 @@ worker:
 log:
   level: info
   format: json
+
+notification:
+  use_mock: true
+  from_address: "noreply@example.com"
+  from_name: "Sovereign Fund"
+  aws_region: "ap-northeast-2"
