@@ -22,6 +22,7 @@ type TradeService interface {
 	Stats(ctx context.Context) (*dto.TradeStats, error)
 	DownloadTemplate(ctx context.Context) (*excelize.File, error)
 	ImportFromExcel(ctx context.Context, file multipart.File) (int, []string, error)
+	Delete(ctx context.Context, tradeID string) error
 }
 
 type tradeService struct {
@@ -180,6 +181,29 @@ func (s *tradeService) Stats(ctx context.Context) (*dto.TradeStats, error) {
 		TradeCount7D:  count7d,
 		TradeCount30D: count30d,
 	}, nil
+}
+
+func (s *tradeService) Delete(ctx context.Context, tradeID string) error {
+	var trade trademodel.Trade
+	if err := s.db.WithContext(ctx).Where("id = ?", tradeID).First(&trade).Error; err != nil {
+		return fmt.Errorf("交易记录不存在")
+	}
+
+	if trade.Source != tradeSourceImport {
+		return fmt.Errorf("只能删除导入的交易记录")
+	}
+
+	var count int64
+	s.db.WithContext(ctx).Table("user_trades").Where("trade_id = ?", tradeID).Count(&count)
+	if count > 0 {
+		return fmt.Errorf("该交易已参与结算分润，无法删除")
+	}
+
+	if err := s.db.WithContext(ctx).Where("id = ?", tradeID).Delete(&trademodel.Trade{}).Error; err != nil {
+		return fmt.Errorf("删除失败: %w", err)
+	}
+
+	return nil
 }
 
 func parseImportRows(reader io.Reader) ([]trademodel.Trade, []string, error) {

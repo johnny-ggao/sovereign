@@ -60,6 +60,10 @@ func RegisterRoutes(r *gin.RouterGroup, m *Module) {
 		middleware.RequireRole(model.RoleSuperAdmin, model.RoleOperator, model.RoleViewer),
 		m.TradeHandler.Stats,
 	)
+	protected.DELETE("/trades/:id",
+		middleware.RequireRole(model.RoleSuperAdmin),
+		m.TradeHandler.Delete,
+	)
 
 	// Transactions
 	protected.GET("/transactions",

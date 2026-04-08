@@ -153,6 +153,10 @@ export function getTradeTemplateUrl() {
   return `${adminApiPrefix}${tradeTemplatePath}`;
 }
 
+export async function deleteTrade(id: string) {
+  return request<API.ApiResponse<null>>(`/trades/${id}`, { method: 'DELETE' });
+}
+
 export async function importTrades(file: File) {
   const formData = new FormData();
   formData.append('file', file);

@@ -63,6 +63,15 @@ func (h *TradeHandler) DownloadTemplate(c *gin.Context) {
 	}
 }
 
+func (h *TradeHandler) Delete(c *gin.Context) {
+	tradeID := c.Param("id")
+	if err := h.svc.Delete(c.Request.Context(), tradeID); err != nil {
+		response.Fail(c, http.StatusBadRequest, "DELETE_TRADE_FAILED", err.Error())
+		return
+	}
+	response.OK(c, gin.H{"message": "交易记录已删除"})
+}
+
 func (h *TradeHandler) ImportTrades(c *gin.Context) {
 	header, err := c.FormFile("file")
 	if err != nil {

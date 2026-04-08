@@ -1,9 +1,9 @@
 import { PageContainer, ProTable } from '@ant-design/pro-components';
 import type { ActionType, ProColumns } from '@ant-design/pro-components';
-import { Button, Card, Col, Modal, Row, Statistic, Tag, Upload, message } from 'antd';
+import { Button, Card, Col, Input, Modal, Row, Statistic, Tag, Upload, message } from 'antd';
 import type { UploadFile } from 'antd';
 import React, { useEffect, useRef, useState } from 'react';
-import { getTradeStats, getTrades, getTradeTemplateUrl, importTrades } from '@/services/api';
+import { deleteTrade, getTradeStats, getTrades, getTradeTemplateUrl, importTrades } from '@/services/api';
 import dayjs from 'dayjs';
 
 const pnlColor = (value: string): string =>
@@ -105,6 +105,52 @@ const TradesPage: React.FC = () => {
       dataIndex: 'executed_at',
       hideInSearch: true,
       render: (_, r) => dayjs(r.executed_at).format('YYYY-MM-DD HH:mm:ss'),
+    },
+    {
+      title: '操作',
+      valueType: 'option',
+      hideInSearch: true,
+      render: (_, record) => {
+        if (record.source !== 'import') return '-';
+        return (
+          <a
+            style={{ color: '#cf1322' }}
+            onClick={() => {
+              let inputValue = '';
+              Modal.confirm({
+                title: '确认删除',
+                content: (
+                  <div>
+                    <p>确认删除该导入交易记录？此操作不可撤销。</p>
+                    <p style={{ marginTop: 8 }}>
+                      请输入 <strong>DELETE</strong> 确认：
+                    </p>
+                    <Input
+                      placeholder="输入 DELETE"
+                      onChange={(e) => {
+                        inputValue = e.target.value;
+                      }}
+                    />
+                  </div>
+                ),
+                okText: '删除',
+                okType: 'danger',
+                onOk: async () => {
+                  if (inputValue !== 'DELETE') {
+                    message.error('请输入 DELETE 确认');
+                    throw new Error('cancel');
+                  }
+                  await deleteTrade(record.id);
+                  message.success('交易记录已删除');
+                  actionRef.current?.reload();
+                },
+              });
+            }}
+          >
+            删除
+          </a>
+        );
+      },
     },
     {
       title: '日期范围',
