@@ -122,7 +122,8 @@ const TradesPage: React.FC = () => {
   };
 
   const handleImport = async () => {
-    const selectedFile = fileList[0]?.originFileObj;
+    const entry = fileList[0];
+    const selectedFile = (entry?.originFileObj ?? entry) as File | undefined;
     if (!selectedFile) {
       message.error('请先选择Excel文件');
       return;
