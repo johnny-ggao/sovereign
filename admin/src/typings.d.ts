@@ -139,7 +139,13 @@ declare namespace API {
     premium_pct: string;
     pnl: string;
     fee: string;
+    source: string;
     executed_at: string;
+  }
+
+  interface TradeImportResult {
+    imported: number;
+    errors: string[];
   }
 
   interface TradeStats {

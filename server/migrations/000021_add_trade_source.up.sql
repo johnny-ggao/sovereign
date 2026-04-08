@@ -1,0 +1,1 @@
+ALTER TABLE trades ADD COLUMN source VARCHAR(20) DEFAULT 'api';

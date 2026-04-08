@@ -1,20 +1,27 @@
 package service
 
 import (
+	"bytes"
 	"context"
 	"fmt"
+	"io"
+	"mime/multipart"
+	"strings"
 	"time"
 
 	"github.com/shopspring/decimal"
 	"github.com/sovereign-fund/sovereign/internal/modules/admin/dto"
 	settlemodel "github.com/sovereign-fund/sovereign/internal/modules/settlement/model"
 	trademodel "github.com/sovereign-fund/sovereign/internal/modules/tradelog/model"
+	"github.com/xuri/excelize/v2"
 	"gorm.io/gorm"
 )
 
 type TradeService interface {
 	List(ctx context.Context, query dto.TradeListQuery) ([]dto.TradeListItem, int64, error)
 	Stats(ctx context.Context) (*dto.TradeStats, error)
+	DownloadTemplate(ctx context.Context) (*excelize.File, error)
+	ImportFromExcel(ctx context.Context, file multipart.File) (int, []string, error)
 }
 
 type tradeService struct {
@@ -62,11 +69,48 @@ func (s *tradeService) List(ctx context.Context, query dto.TradeListQuery) ([]dt
 			PremiumPct:   t.PremiumPct.StringFixed(2),
 			PnL:          t.PnL.StringFixed(2),
 			Fee:          t.Fee.StringFixed(2),
+			Source:       t.Source,
 			ExecutedAt:   t.ExecutedAt.Format(time.RFC3339),
 		}
 	}
 
 	return items, total, nil
+}
+
+func (s *tradeService) DownloadTemplate(_ context.Context) (*excelize.File, error) {
+	file := excelize.NewFile()
+	sheet := file.GetSheetList()[0]
+	file.SetSheetName(sheet, tradeTemplateSheetName)
+	for col, value := range tradeTemplateHeaders {
+		if err := file.SetCellValue(tradeTemplateSheetName, fmt.Sprintf("%s1", tradeTemplateColumns[col]), value); err != nil {
+			return nil, fmt.Errorf("set template header: %w", err)
+		}
+	}
+	for col, value := range tradeTemplateSampleRow {
+		if err := file.SetCellValue(tradeTemplateSheetName, fmt.Sprintf("%s2", tradeTemplateColumns[col]), value); err != nil {
+			return nil, fmt.Errorf("set template sample row: %w", err)
+		}
+	}
+	for _, width := range tradeTemplateWidths {
+		if err := file.SetColWidth(tradeTemplateSheetName, width.Start, width.End, width.Width); err != nil {
+			return nil, fmt.Errorf("set template column width: %w", err)
+		}
+	}
+	return file, nil
+}
+
+func (s *tradeService) ImportFromExcel(ctx context.Context, file multipart.File) (int, []string, error) {
+	trades, rowErrors, err := parseImportRows(file)
+	if err != nil {
+		return 0, nil, err
+	}
+	if len(trades) == 0 {
+		return 0, rowErrors, nil
+	}
+	if err := s.db.WithContext(ctx).CreateInBatches(trades, tradeImportBatchSize).Error; err != nil {
+		return 0, rowErrors, fmt.Errorf("import trades: %w", err)
+	}
+	return len(trades), rowErrors, nil
 }
 
 func (s *tradeService) Stats(ctx context.Context) (*dto.TradeStats, error) {
@@ -137,3 +181,169 @@ func (s *tradeService) Stats(ctx context.Context) (*dto.TradeStats, error) {
 		TradeCount30D: count30d,
 	}, nil
 }
+
+func parseImportRows(reader io.Reader) ([]trademodel.Trade, []string, error) {
+	content, err := io.ReadAll(reader)
+	if err != nil {
+		return nil, nil, fmt.Errorf("read excel file: %w", err)
+	}
+	workbook, err := excelize.OpenReader(bytes.NewReader(content))
+	if err != nil {
+		return nil, nil, fmt.Errorf("open excel file: %w", err)
+	}
+	sheets := workbook.GetSheetList()
+	if len(sheets) == 0 {
+		return nil, nil, fmt.Errorf("excel file contains no worksheets")
+	}
+	rows, err := workbook.GetRows(sheets[0])
+	if err != nil {
+		return nil, nil, fmt.Errorf("read excel rows: %w", err)
+	}
+
+	trades := make([]trademodel.Trade, 0, len(rows))
+	rowErrors := make([]string, 0)
+	for index, row := range rows[1:] {
+		trade, rowErr := parseTradeRow(row)
+		if rowErr != nil {
+			rowErrors = append(rowErrors, fmt.Sprintf("第%d行: %s", index+2, rowErr.Error()))
+			continue
+		}
+		trades = append(trades, *trade)
+	}
+	return trades, rowErrors, nil
+}
+
+func parseTradeRow(row []string) (*trademodel.Trade, error) {
+	pair, err := requiredCell(row, 0, "交易对")
+	if err != nil {
+		return nil, err
+	}
+	buyExchange, err := requiredCell(row, 1, "买入交易所")
+	if err != nil {
+		return nil, err
+	}
+	sellExchange, err := requiredCell(row, 2, "卖出交易所")
+	if err != nil {
+		return nil, err
+	}
+
+	buyPrice, err := parseDecimalCell(row, 3, "买入价格", true)
+	if err != nil {
+		return nil, err
+	}
+	sellPrice, err := parseDecimalCell(row, 4, "卖出价格", true)
+	if err != nil {
+		return nil, err
+	}
+	amount, err := parseDecimalCell(row, 5, "金额", true)
+	if err != nil {
+		return nil, err
+	}
+	premiumPct, err := parseDecimalCell(row, 6, "溢价率(%)", true)
+	if err != nil {
+		return nil, err
+	}
+	pnl, err := parseDecimalCell(row, 7, "盈亏", true)
+	if err != nil {
+		return nil, err
+	}
+	fee, err := parseDecimalCell(row, 8, "手续费", false)
+	if err != nil {
+		return nil, err
+	}
+	executedAt, err := parseExecutedAt(row)
+	if err != nil {
+		return nil, err
+	}
+
+	return &trademodel.Trade{
+		Pair:         pair,
+		BuyExchange:  buyExchange,
+		SellExchange: sellExchange,
+		BuyPrice:     buyPrice,
+		SellPrice:    sellPrice,
+		Amount:       amount,
+		PremiumPct:   premiumPct,
+		PnL:          pnl,
+		Fee:          fee,
+		Source:       tradeSourceImport,
+		ExecutedAt:   executedAt,
+	}, nil
+}
+
+func requiredCell(row []string, index int, label string) (string, error) {
+	value := strings.TrimSpace(cellValue(row, index))
+	if value == "" {
+		return "", fmt.Errorf("%s不能为空", label)
+	}
+	return value, nil
+}
+
+func parseDecimalCell(row []string, index int, label string, required bool) (decimal.Decimal, error) {
+	value := strings.TrimSpace(cellValue(row, index))
+	if value == "" {
+		if required {
+			return decimal.Zero, fmt.Errorf("%s不能为空", label)
+		}
+		return decimal.Zero, nil
+	}
+	parsed, err := decimal.NewFromString(value)
+	if err != nil {
+		return decimal.Zero, fmt.Errorf("%s格式无效", label)
+	}
+	return parsed, nil
+}
+
+func parseExecutedAt(row []string) (time.Time, error) {
+	value, err := requiredCell(row, 9, "执行时间")
+	if err != nil {
+		return time.Time{}, err
+	}
+	for _, format := range supportedTimeFormats {
+		parsed, parseErr := time.Parse(format, value)
+		if parseErr == nil {
+			return parsed, nil
+		}
+	}
+	return time.Time{}, fmt.Errorf("执行时间格式无效")
+}
+
+func cellValue(row []string, index int) string {
+	if index >= len(row) {
+		return ""
+	}
+	return row[index]
+}
+
+type tradeTemplateWidth struct {
+	Start string
+	End   string
+	Width float64
+}
+
+var tradeTemplateHeaders = []string{
+	"交易对", "买入交易所", "卖出交易所", "买入价格", "卖出价格",
+	"金额", "溢价率(%)", "盈亏", "手续费", "执行时间",
+}
+
+var tradeTemplateSampleRow = []string{
+	"USDT/KRW", "Binance", "Upbit", "1.0000", "1.0350",
+	"10000.00", "3.50", "350.00", "10.00", "2026-04-07 12:00:00",
+}
+
+var tradeTemplateColumns = []string{"A", "B", "C", "D", "E", "F", "G", "H", "I", "J"}
+
+var tradeTemplateWidths = []tradeTemplateWidth{
+	{Start: "A", End: "A", Width: 18},
+	{Start: "B", End: "C", Width: 16},
+	{Start: "D", End: "I", Width: 14},
+	{Start: "J", End: "J", Width: 22},
+}
+
+var supportedTimeFormats = []string{"2006-01-02 15:04:05", time.RFC3339}
+
+const (
+	tradeTemplateSheetName = "Trades"
+	tradeImportBatchSize   = 100
+	tradeSourceImport      = "import"
+)

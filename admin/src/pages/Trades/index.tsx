@@ -1,8 +1,9 @@
 import { PageContainer, ProTable } from '@ant-design/pro-components';
-import type { ProColumns } from '@ant-design/pro-components';
-import { Card, Col, Row, Statistic, Tag } from 'antd';
-import React, { useEffect, useState } from 'react';
-import { getTrades, getTradeStats } from '@/services/api';
+import type { ActionType, ProColumns } from '@ant-design/pro-components';
+import { Button, Card, Col, Modal, Row, Statistic, Tag, Upload, message } from 'antd';
+import type { UploadFile } from 'antd';
+import React, { useEffect, useRef, useState } from 'react';
+import { getTradeStats, getTrades, getTradeTemplateUrl, importTrades } from '@/services/api';
 import dayjs from 'dayjs';
 
 const pnlColor = (value: string): string =>
@@ -11,9 +12,20 @@ const pnlColor = (value: string): string =>
 const formatPnl = (value: string): string =>
   parseFloat(value) >= 0 ? `+${value}` : value;
 
+const tradeSourceTagMap: Record<string, { color: string; label: string }> = {
+  api: { color: 'blue', label: 'API' },
+  import: { color: 'green', label: '导入' },
+  bot: { color: 'purple', label: '机器人' },
+};
+
 const TradesPage: React.FC = () => {
+  const actionRef = useRef<ActionType>();
   const [stats, setStats] = useState<API.TradeStats | null>(null);
   const [statsLoading, setStatsLoading] = useState(true);
+  const [importModalOpen, setImportModalOpen] = useState(false);
+  const [importing, setImporting] = useState(false);
+  const [fileList, setFileList] = useState<UploadFile[]>([]);
+  const [importResult, setImportResult] = useState<API.TradeImportResult | null>(null);
 
   useEffect(() => {
     getTradeStats()
@@ -80,6 +92,15 @@ const TradesPage: React.FC = () => {
       hideInSearch: true,
     },
     {
+      title: '来源',
+      dataIndex: 'source',
+      hideInSearch: true,
+      render: (_, record) => {
+        const tag = tradeSourceTagMap[record.source] ?? { color: 'default', label: record.source };
+        return <Tag color={tag.color}>{tag.label}</Tag>;
+      },
+    },
+    {
       title: '执行时间',
       dataIndex: 'executed_at',
       hideInSearch: true,
@@ -92,6 +113,41 @@ const TradesPage: React.FC = () => {
       hideInTable: true,
     },
   ];
+
+  const resetImportState = () => {
+    setImportModalOpen(false);
+    setImporting(false);
+    setFileList([]);
+    setImportResult(null);
+  };
+
+  const handleImport = async () => {
+    const selectedFile = fileList[0]?.originFileObj;
+    if (!selectedFile) {
+      message.error('请先选择Excel文件');
+      return;
+    }
+
+    setImporting(true);
+    try {
+      const res = await importTrades(selectedFile as File);
+      if (!res.success || !res.data) {
+        message.error(res.error?.message ?? '导入交易失败');
+        return;
+      }
+      setImportResult(res.data);
+      if (res.data.errors.length > 0) {
+        message.warning(`导入完成，成功 ${res.data.imported} 条，失败 ${res.data.errors.length} 条`);
+      } else {
+        message.success(`导入成功，共 ${res.data.imported} 条`);
+      }
+      actionRef.current?.reload();
+    } catch (error: any) {
+      message.error(error?.message ?? '导入交易失败');
+    } finally {
+      setImporting(false);
+    }
+  };
 
   return (
     <PageContainer>
@@ -142,9 +198,21 @@ const TradesPage: React.FC = () => {
 
       <ProTable<API.TradeListItem>
         headerTitle="套利交易历史"
+        actionRef={actionRef}
         columns={columns}
         rowKey="id"
         search={{ labelWidth: 'auto' }}
+        toolBarRender={() => [
+          <Button
+            key="template"
+            onClick={() => window.open(getTradeTemplateUrl(), '_blank', 'noopener,noreferrer')}
+          >
+            下载模板
+          </Button>,
+          <Button key="import" type="primary" onClick={() => setImportModalOpen(true)}>
+            导入交易
+          </Button>,
+        ]}
         request={async (params) => {
           const dateRange = params.dateRange;
           const res = await getTrades({
@@ -162,6 +230,52 @@ const TradesPage: React.FC = () => {
         }}
         pagination={{ defaultPageSize: 20 }}
       />
+
+      <Modal
+        title="导入套利交易"
+        open={importModalOpen}
+        okText="开始导入"
+        cancelText="取消"
+        confirmLoading={importing}
+        onOk={handleImport}
+        onCancel={resetImportState}
+      >
+        <Upload.Dragger
+          accept=".xlsx,.xls"
+          maxCount={1}
+          fileList={fileList}
+          beforeUpload={(file) => {
+            setFileList([file]);
+            setImportResult(null);
+            return false;
+          }}
+          onRemove={() => {
+            setFileList([]);
+            setImportResult(null);
+          }}
+        >
+          <p>点击或拖拽Excel文件到此区域上传</p>
+          <p>支持 `.xlsx` / `.xls` 格式，按模板列顺序导入套利交易记录。</p>
+        </Upload.Dragger>
+
+        {importResult && (
+          <div style={{ marginTop: 16 }}>
+            <div style={{ fontWeight: 600, marginBottom: 8 }}>
+              导入结果: 成功 {importResult.imported} 条
+            </div>
+            <div style={{ color: '#666', marginBottom: 8 }}>
+              错误数量: {importResult.errors.length}
+            </div>
+            {importResult.errors.length > 0 && (
+              <div style={{ maxHeight: 160, overflowY: 'auto', padding: 12, background: '#fafafa', borderRadius: 6 }}>
+                {importResult.errors.map((item) => (
+                  <div key={item}>{item}</div>
+                ))}
+              </div>
+            )}
+          </div>
+        )}
+      </Modal>
     </PageContainer>
   );
 };

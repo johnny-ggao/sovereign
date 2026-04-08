@@ -18,11 +18,14 @@ require (
 	github.com/redis/go-redis/v9 v9.18.0
 	github.com/robfig/cron/v3 v3.0.1
 	github.com/shopspring/decimal v1.4.0
+	github.com/xuri/excelize/v2 v2.0.0
 	golang.org/x/crypto v0.49.0
 	google.golang.org/api v0.272.0
 	gorm.io/driver/postgres v1.6.0
 	gorm.io/gorm v1.31.1
 )
+
+replace github.com/xuri/excelize/v2 => ./third_party/excelize
 
 require (
 	cloud.google.com/go/auth v0.18.2 // indirect

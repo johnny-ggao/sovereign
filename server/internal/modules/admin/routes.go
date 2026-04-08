@@ -48,11 +48,18 @@ func RegisterRoutes(r *gin.RouterGroup, m *Module) {
 		middleware.RequireRole(model.RoleSuperAdmin, model.RoleOperator, model.RoleViewer),
 		m.TradeHandler.List,
 	)
+	protected.GET("/trades/template",
+		middleware.RequireRole(model.RoleSuperAdmin, model.RoleOperator, model.RoleViewer),
+		m.TradeHandler.DownloadTemplate,
+	)
+	protected.POST("/trades/import",
+		middleware.RequireRole(model.RoleSuperAdmin, model.RoleOperator),
+		m.TradeHandler.ImportTrades,
+	)
 	protected.GET("/trades/stats",
 		middleware.RequireRole(model.RoleSuperAdmin, model.RoleOperator, model.RoleViewer),
 		m.TradeHandler.Stats,
 	)
-
 
 	// Transactions
 	protected.GET("/transactions",

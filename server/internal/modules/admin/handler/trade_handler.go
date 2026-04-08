@@ -48,3 +48,40 @@ func (h *TradeHandler) Stats(c *gin.Context) {
 
 	response.OK(c, stats)
 }
+
+func (h *TradeHandler) DownloadTemplate(c *gin.Context) {
+	file, err := h.svc.DownloadTemplate(c.Request.Context())
+	if err != nil {
+		response.Fail(c, http.StatusInternalServerError, "TRADE_TEMPLATE_FAILED", err.Error())
+		return
+	}
+
+	c.Header("Content-Type", "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet")
+	c.Header("Content-Disposition", `attachment; filename="trade-import-template.xlsx"`)
+	if err := file.Write(c.Writer); err != nil {
+		response.Fail(c, http.StatusInternalServerError, "TRADE_TEMPLATE_WRITE_FAILED", err.Error())
+	}
+}
+
+func (h *TradeHandler) ImportTrades(c *gin.Context) {
+	header, err := c.FormFile("file")
+	if err != nil {
+		response.Fail(c, http.StatusBadRequest, "INVALID_FILE", "missing file")
+		return
+	}
+
+	file, err := header.Open()
+	if err != nil {
+		response.Fail(c, http.StatusBadRequest, "INVALID_FILE", "unable to open uploaded file")
+		return
+	}
+	defer file.Close()
+
+	imported, rowErrors, err := h.svc.ImportFromExcel(c.Request.Context(), file)
+	if err != nil {
+		response.Fail(c, http.StatusInternalServerError, "TRADE_IMPORT_FAILED", err.Error())
+		return
+	}
+
+	response.OK(c, gin.H{"imported": imported, "errors": rowErrors})
+}

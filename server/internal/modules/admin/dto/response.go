@@ -120,6 +120,7 @@ type TradeListItem struct {
 	PremiumPct   string `json:"premium_pct"`
 	PnL          string `json:"pnl"`
 	Fee          string `json:"fee"`
+	Source       string `json:"source"`
 	ExecutedAt   string `json:"executed_at"`
 }
 

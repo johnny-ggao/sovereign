@@ -1,5 +1,8 @@
 import { request } from '@umijs/max';
 
+const adminApiPrefix = '/api/v1/admin';
+const tradeTemplatePath = '/trades/template';
+
 /** Auth */
 export async function login(body: { email: string; password: string }) {
   return request<API.ApiResponse<API.LoginResponse>>('/auth/login', {
@@ -143,6 +146,20 @@ export async function getTrades(params: {
 export async function getTradeStats() {
   return request<API.ApiResponse<API.TradeStats>>('/trades/stats', {
     method: 'GET',
+  });
+}
+
+export function getTradeTemplateUrl() {
+  return `${adminApiPrefix}${tradeTemplatePath}`;
+}
+
+export async function importTrades(file: File) {
+  const formData = new FormData();
+  formData.append('file', file);
+  return request<API.ApiResponse<API.TradeImportResult>>('/trades/import', {
+    method: 'POST',
+    data: formData,
+    requestType: 'form',
   });
 }
 
