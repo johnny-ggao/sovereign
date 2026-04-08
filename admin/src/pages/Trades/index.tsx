@@ -205,7 +205,22 @@ const TradesPage: React.FC = () => {
         toolBarRender={() => [
           <Button
             key="template"
-            onClick={() => window.open(getTradeTemplateUrl(), '_blank', 'noopener,noreferrer')}
+            onClick={() => {
+              const token = localStorage.getItem('token');
+              fetch(getTradeTemplateUrl(), {
+                headers: { Authorization: `Bearer ${token}` },
+              })
+                .then((res) => res.blob())
+                .then((blob) => {
+                  const url = URL.createObjectURL(blob);
+                  const a = document.createElement('a');
+                  a.href = url;
+                  a.download = 'trade_template.xlsx';
+                  a.click();
+                  URL.revokeObjectURL(url);
+                })
+                .catch(() => message.error('下载模板失败'));
+            }}
           >
             下载模板
           </Button>,
