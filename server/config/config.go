@@ -3,18 +3,18 @@ package config
 import "time"
 
 type Config struct {
-	Server   ServerConfig   `yaml:"server"`
-	Database DatabaseConfig `yaml:"database"`
-	Redis    RedisConfig    `yaml:"redis"`
-	JWT      JWTConfig      `yaml:"jwt"`
-	OTP      OTPConfig      `yaml:"otp"`
-	Crypto   CryptoConfig   `yaml:"crypto"`
-	Wallet   WalletConfig   `yaml:"wallet"`
-	Cobo     CoboConfig     `yaml:"cobo"`
-	Internal InternalAPIConfig `yaml:"internal"`
-	Exchange ExchangeConfig    `yaml:"exchange"`
-Google   GoogleConfig   `yaml:"google"`
-	Worker   WorkerConfig   `yaml:"worker"`
+	Server       ServerConfig       `yaml:"server"`
+	Database     DatabaseConfig     `yaml:"database"`
+	Redis        RedisConfig        `yaml:"redis"`
+	JWT          JWTConfig          `yaml:"jwt"`
+	OTP          OTPConfig          `yaml:"otp"`
+	Crypto       CryptoConfig       `yaml:"crypto"`
+	Wallet       WalletConfig       `yaml:"wallet"`
+	Cobo         CoboConfig         `yaml:"cobo"`
+	Internal     InternalAPIConfig  `yaml:"internal"`
+	Exchange     ExchangeConfig     `yaml:"exchange"`
+	Google       GoogleConfig       `yaml:"google"`
+	Worker       WorkerConfig       `yaml:"worker"`
 	Log          LogConfig          `yaml:"log"`
 	Notification NotificationConfig `yaml:"notification"`
 	Admin        AdminConfig        `yaml:"admin"`
@@ -113,6 +113,7 @@ type InternalAPIConfig struct {
 type WorkerConfig struct {
 	PremiumFetchInterval time.Duration `yaml:"premium_fetch_interval"`
 	SettlementCron       string        `yaml:"settlement_cron"`
+	RedeemCron           string        `yaml:"redeem_cron"`
 	CleanupCron          string        `yaml:"cleanup_cron"`
 }
 

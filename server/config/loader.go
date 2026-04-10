@@ -6,7 +6,6 @@ import (
 	"strings"
 	"time"
 
-
 	"github.com/go-viper/mapstructure/v2"
 	"github.com/knadh/koanf/parsers/yaml"
 	"github.com/knadh/koanf/providers/env"
@@ -134,6 +133,9 @@ func setDefaults(cfg *Config) {
 	}
 	if cfg.Worker.PremiumFetchInterval == 0 {
 		cfg.Worker.PremiumFetchInterval = 2 * time.Second
+	}
+	if cfg.Worker.RedeemCron == "" {
+		cfg.Worker.RedeemCron = "0 0 * * * *"
 	}
 }
 

@@ -160,26 +160,8 @@ func (s *investmentService) Redeem(ctx context.Context, userID string, req dto.R
 		return nil, apperr.ErrRedeemPending
 	}
 
-	// 更新钱包余额：本金从 InOperation 退回 + 净收益到 Available
-	wallet, err := s.walletRepo.FindByUserIDAndCurrency(ctx, userID, inv.Currency)
-	if err != nil {
-		return nil, apperr.Wrap(apperr.ErrInternal, err)
-	}
-
-	// 本金退回 + 净收益
-	returnAmount := inv.Amount.Add(inv.NetReturn)
-	newAvailable := wallet.Available.Add(returnAmount)
-	newInOp := wallet.InOperation.Sub(inv.Amount)
-	if newInOp.LessThan(decimal.Zero) {
-		newInOp = decimal.Zero
-	}
-
-	if err := s.walletRepo.UpdateBalance(ctx, wallet.ID, newAvailable, newInOp, wallet.Frozen); err != nil {
-		return nil, apperr.Wrap(apperr.ErrInternal, err)
-	}
-
 	now := time.Now()
-	inv.Status = model.InvestStatusRedeemed
+	inv.Status = model.InvestStatusStopping
 	inv.EndDate = &now
 
 	if err := s.invRepo.Update(ctx, inv); err != nil {
@@ -196,7 +178,7 @@ func (s *investmentService) Redeem(ctx context.Context, userID string, req dto.R
 		slog.String("investment_id", inv.ID),
 		slog.String("principal", inv.Amount.String()),
 		slog.String("net_return", inv.NetReturn.String()),
-		slog.String("total_returned", returnAmount.String()),
+		slog.String("status", inv.Status),
 	)
 
 	return toInvestmentResponse(inv), nil

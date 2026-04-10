@@ -57,6 +57,7 @@ exchange:
 worker:
   premium_fetch_interval: "5s"
   settlement_cron: "0 0 0 * * *"
+  redeem_cron: "0 0 * * * *"
   cleanup_cron: "0 0 3 * * *"
 
 log:

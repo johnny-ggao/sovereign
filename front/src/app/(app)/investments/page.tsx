@@ -4,12 +4,21 @@ import { useState } from "react"
 import { useInvestments, useCreateInvestment, useRedeemInvestment } from "@/hooks/use-api"
 import { ApiError } from "@/lib/api-client"
 import { toast } from "sonner"
-import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
+import { Card, CardContent } from "@/components/ui/card"
 import { Button } from "@/components/ui/button"
 import { Badge } from "@/components/ui/badge"
 import { Input } from "@/components/ui/input"
 import { Label } from "@/components/ui/label"
-import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from "@/components/ui/dialog"
+import {
+  Dialog,
+  DialogClose,
+  DialogContent,
+  DialogDescription,
+  DialogFooter,
+  DialogHeader,
+  DialogTitle,
+  DialogTrigger,
+} from "@/components/ui/dialog"
 import { Skeleton } from "@/components/ui/skeleton"
 import { PieChart, Plus, StopCircle, TrendingUp } from "lucide-react"
 import { formatCurrency, formatPct, formatDate } from "@/lib/format"
@@ -21,18 +30,26 @@ export default function InvestmentsPage() {
   const redeemInv = useRedeemInvestment()
   const [amount, setAmount] = useState("")
   const [dialogOpen, setDialogOpen] = useState(false)
+  const [confirmInvestOpen, setConfirmInvestOpen] = useState(false)
+  const [confirmRedeemId, setConfirmRedeemId] = useState<string | null>(null)
   const t = useT()
 
   const [createError, setCreateError] = useState("")
 
-  async function handleCreate() {
+  function handleCreate() {
+    setConfirmInvestOpen(true)
+  }
+
+  async function confirmCreate() {
     setCreateError("")
     try {
       await createInv.mutateAsync({ amount })
       setAmount("")
+      setConfirmInvestOpen(false)
       setDialogOpen(false)
       toast.success(t("investment.createSuccess"))
     } catch (err) {
+      setConfirmInvestOpen(false)
       if (err instanceof ApiError) {
         if (err.code === "INVESTMENT_MIN_AMOUNT") {
           setCreateError(t("investment.minAmountError"))
@@ -45,9 +62,20 @@ export default function InvestmentsPage() {
     }
   }
 
+  async function confirmRedeem() {
+    if (!confirmRedeemId) return
+    try {
+      await redeemInv.mutateAsync(confirmRedeemId)
+      setConfirmRedeemId(null)
+    } catch {
+      setConfirmRedeemId(null)
+    }
+  }
+
   if (isLoading) return <Skeleton className="h-96" />
 
   const summary = data?.summary
+  const investConfirmContent = t("investment.confirmInvestContent").replace("{amount}", amount || "0")
 
   return (
     <div className="space-y-6 glow-bg">
@@ -85,6 +113,38 @@ export default function InvestmentsPage() {
                 {createInv.isPending ? t("investment.creating") : t("investment.invest")}
               </Button>
             </div>
+          </DialogContent>
+        </Dialog>
+        <Dialog open={confirmInvestOpen} onOpenChange={setConfirmInvestOpen}>
+          <DialogContent className="bg-card">
+            <DialogHeader>
+              <DialogTitle>{t("investment.confirmInvestTitle")}</DialogTitle>
+              <DialogDescription>{investConfirmContent}</DialogDescription>
+            </DialogHeader>
+            <DialogFooter>
+              <DialogClose render={<Button variant="outline" />}>
+                {t("investment.cancel")}
+              </DialogClose>
+              <Button onClick={confirmCreate} disabled={createInv.isPending}>
+                {createInv.isPending ? t("investment.creating") : t("investment.confirmInvest")}
+              </Button>
+            </DialogFooter>
+          </DialogContent>
+        </Dialog>
+        <Dialog open={!!confirmRedeemId} onOpenChange={(open) => { if (!open) setConfirmRedeemId(null) }}>
+          <DialogContent className="bg-card">
+            <DialogHeader>
+              <DialogTitle>{t("investment.confirmRedeemTitle")}</DialogTitle>
+              <DialogDescription>{t("investment.confirmRedeemContent")}</DialogDescription>
+            </DialogHeader>
+            <DialogFooter>
+              <DialogClose render={<Button variant="outline" />}>
+                {t("investment.cancel")}
+              </DialogClose>
+              <Button onClick={confirmRedeem} disabled={redeemInv.isPending}>
+                {t("investment.confirmRedeem")}
+              </Button>
+            </DialogFooter>
           </DialogContent>
         </Dialog>
       </div>
@@ -164,7 +224,7 @@ export default function InvestmentsPage() {
                     <Button
                       variant="outline"
                       size="sm"
-                      onClick={() => redeemInv.mutate(inv.id)}
+                      onClick={() => setConfirmRedeemId(inv.id)}
                       disabled={redeemInv.isPending}
                     >
                       <StopCircle className="mr-1 h-3 w-3" />

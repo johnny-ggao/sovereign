@@ -49,6 +49,7 @@ func main() {
 	sr := settlRepo.NewSettlementRepository(db)
 	wr := walletRepository.NewWalletRepository(db)
 	settlJob := worker.NewSettlementJob(ir, tr, utr, sr, wr, bus, log)
+	redeemJob := worker.NewRedeemJob(db, wr, log)
 
 	// Cleanup job
 	tokenRepo := authRepo.NewTokenRepository(db)
@@ -58,6 +59,7 @@ func main() {
 	// Register jobs
 	w := worker.New(log)
 	w.Register(cfg.Worker.SettlementCron, settlJob)
+	w.Register(cfg.Worker.RedeemCron, redeemJob)
 	w.Register(cfg.Worker.CleanupCron, cleanupJob)
 
 	if err := w.Start(); err != nil {
