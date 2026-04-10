@@ -7,6 +7,7 @@ import {
   Descriptions,
   Input,
   Modal,
+  Select,
   Space,
   Table,
   Tabs,
@@ -79,6 +80,7 @@ const UserDetailPage: React.FC = () => {
   const [user, setUser] = useState<API.UserDetail | null>(null);
   const [loading, setLoading] = useState(true);
   const [adjustModalOpen, setAdjustModalOpen] = useState(false);
+  const [adjustCurrency, setAdjustCurrency] = useState('USDT');
   const [adjustAmount, setAdjustAmount] = useState('');
   const [adjustReason, setAdjustReason] = useState('');
   const [adjustLoading, setAdjustLoading] = useState(false);
@@ -141,10 +143,11 @@ const UserDetailPage: React.FC = () => {
     if (!id) return;
     setAdjustLoading(true);
     try {
-      const res = await adjustBalance(id, { amount: adjustAmount, reason: adjustReason });
+      const res = await adjustBalance(id, { currency: adjustCurrency, amount: adjustAmount, reason: adjustReason });
       if (res.success) {
         message.success('余额已调整');
         setAdjustModalOpen(false);
+        setAdjustCurrency('USDT');
         setAdjustAmount('');
         setAdjustReason('');
         fetchUser();
@@ -165,9 +168,11 @@ const UserDetailPage: React.FC = () => {
           <Space>
             <Button onClick={handleResetPassword}>重置密码</Button>
             <Button onClick={handleReset2FA}>重置2FA</Button>
-            <Button type="primary" onClick={() => setAdjustModalOpen(true)}>
-              调整余额
-            </Button>
+            {access.isSuperAdmin && (
+              <Button type="primary" onClick={() => setAdjustModalOpen(true)}>
+                调整余额
+              </Button>
+            )}
           </Space>
         ) : null
       }
@@ -247,17 +252,27 @@ const UserDetailPage: React.FC = () => {
       )}
 
       <Modal
-        title="调整余额 (USDT)"
+        title="调整余额"
         open={adjustModalOpen}
         onOk={handleAdjustBalance}
         onCancel={() => {
           setAdjustModalOpen(false);
+          setAdjustCurrency('USDT');
           setAdjustAmount('');
           setAdjustReason('');
         }}
         confirmLoading={adjustLoading}
         okButtonProps={{ disabled: !adjustAmount || !adjustReason }}
       >
+        <div style={{ marginBottom: 16 }}>
+          <label>币种：</label>
+          <Select
+            value={adjustCurrency}
+            onChange={setAdjustCurrency}
+            style={{ width: '100%', marginTop: 8 }}
+            options={[{ value: 'USDT', label: 'USDT' }]}
+          />
+        </div>
         <div style={{ marginBottom: 16 }}>
           <label>金额（如 100 或 -50）：</label>
           <Input

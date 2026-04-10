@@ -75,7 +75,7 @@ export async function resetUserPassword(id: string) {
   });
 }
 
-export async function adjustBalance(id: string, body: { amount: string; reason: string }) {
+export async function adjustBalance(id: string, body: { currency: string; amount: string; reason: string }) {
   return request<API.ApiResponse<null>>(`/users/${id}/adjust-balance`, {
     method: 'POST',
     data: body,
