@@ -68,3 +68,12 @@ type TransactionListQuery struct {
 	DateFrom string `form:"date_from"`
 	DateTo   string `form:"date_to"`
 }
+
+type AuditLogListQuery struct {
+	Page     int    `form:"page,default=1"`
+	Limit    int    `form:"limit,default=20"`
+	Action   string `form:"action"`
+	AdminID  string `form:"admin_id"`
+	DateFrom string `form:"date_from"`
+	DateTo   string `form:"date_to"`
+}

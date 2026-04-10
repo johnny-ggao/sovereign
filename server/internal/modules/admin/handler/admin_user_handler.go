@@ -1,6 +1,8 @@
 package handler
 
 import (
+	"fmt"
+	"log"
 	"net/http"
 
 	"github.com/gin-gonic/gin"
@@ -10,11 +12,12 @@ import (
 )
 
 type AdminUserHandler struct {
-	svc service.AdminUserService
+	svc      service.AdminUserService
+	auditSvc service.AuditService
 }
 
-func NewAdminUserHandler(svc service.AdminUserService) *AdminUserHandler {
-	return &AdminUserHandler{svc: svc}
+func NewAdminUserHandler(svc service.AdminUserService, auditSvc service.AuditService) *AdminUserHandler {
+	return &AdminUserHandler{svc: svc, auditSvc: auditSvc}
 }
 
 func (h *AdminUserHandler) List(c *gin.Context) {
@@ -37,6 +40,20 @@ func (h *AdminUserHandler) Create(c *gin.Context) {
 	if err != nil {
 		response.Fail(c, http.StatusBadRequest, "CREATE_ADMIN_FAILED", err.Error())
 		return
+	}
+
+	detail := fmt.Sprintf("email=%s, role=%s", admin.Email, admin.Role)
+	if err := h.auditSvc.Log(
+		c.Request.Context(),
+		c.GetString("admin_id"),
+		c.GetString("admin_email"),
+		"create_admin",
+		"admin",
+		admin.ID,
+		detail,
+		c.ClientIP(),
+	); err != nil {
+		log.Printf("failed to write audit log: %v", err)
 	}
 
 	response.Created(c, admin)
@@ -67,6 +84,19 @@ func (h *AdminUserHandler) Delete(c *gin.Context) {
 	if err := h.svc.Delete(c.Request.Context(), id, currentAdminID); err != nil {
 		response.Fail(c, http.StatusBadRequest, "DELETE_ADMIN_FAILED", err.Error())
 		return
+	}
+
+	if err := h.auditSvc.Log(
+		c.Request.Context(),
+		c.GetString("admin_id"),
+		c.GetString("admin_email"),
+		"delete_admin",
+		"admin",
+		id,
+		"",
+		c.ClientIP(),
+	); err != nil {
+		log.Printf("failed to write audit log: %v", err)
 	}
 
 	response.NoContent(c)

@@ -132,4 +132,9 @@ func RegisterRoutes(r *gin.RouterGroup, m *Module) {
 			m.AdminUserHandler.Delete,
 		)
 	}
+
+	protected.GET("/audit-logs",
+		middleware.RequireRole(model.RoleSuperAdmin),
+		m.AuditHandler.List,
+	)
 }

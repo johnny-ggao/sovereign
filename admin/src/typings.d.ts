@@ -159,6 +159,18 @@ declare namespace API {
     trade_count_7d: number;
     trade_count_30d: number;
   }
+
+  interface AuditLog {
+    id: string;
+    admin_id: string;
+    admin_email: string;
+    action: string;
+    target_type: string;
+    target_id: string;
+    detail: string;
+    ip_address: string;
+    created_at: string;
+  }
 }
 
 declare namespace API {

@@ -1,6 +1,7 @@
 package handler
 
 import (
+	"log"
 	"net/http"
 
 	"github.com/gin-gonic/gin"
@@ -10,11 +11,12 @@ import (
 )
 
 type TradeHandler struct {
-	svc service.TradeService
+	svc      service.TradeService
+	auditSvc service.AuditService
 }
 
-func NewTradeHandler(svc service.TradeService) *TradeHandler {
-	return &TradeHandler{svc: svc}
+func NewTradeHandler(svc service.TradeService, auditSvc service.AuditService) *TradeHandler {
+	return &TradeHandler{svc: svc, auditSvc: auditSvc}
 }
 
 func (h *TradeHandler) List(c *gin.Context) {
@@ -68,6 +70,19 @@ func (h *TradeHandler) Delete(c *gin.Context) {
 	if err := h.svc.Delete(c.Request.Context(), tradeID); err != nil {
 		response.Fail(c, http.StatusBadRequest, "DELETE_TRADE_FAILED", err.Error())
 		return
+	}
+
+	if err := h.auditSvc.Log(
+		c.Request.Context(),
+		c.GetString("admin_id"),
+		c.GetString("admin_email"),
+		"delete_trade",
+		"trade",
+		tradeID,
+		"",
+		c.ClientIP(),
+	); err != nil {
+		log.Printf("failed to write audit log: %v", err)
 	}
 	response.OK(c, gin.H{"message": "交易记录已删除"})
 }

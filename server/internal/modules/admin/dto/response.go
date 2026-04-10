@@ -165,3 +165,15 @@ type TransactionStats struct {
 	WithdrawCount7D  int64  `json:"withdraw_count_7d"`
 	WithdrawCount30D int64  `json:"withdraw_count_30d"`
 }
+
+type AuditLogResponse struct {
+	ID         string    `json:"id"`
+	AdminID    string    `json:"admin_id"`
+	AdminEmail string    `json:"admin_email"`
+	Action     string    `json:"action"`
+	TargetType string    `json:"target_type"`
+	TargetID   string    `json:"target_id"`
+	Detail     string    `json:"detail"`
+	IPAddress  string    `json:"ip_address"`
+	CreatedAt  time.Time `json:"created_at"`
+}

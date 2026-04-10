@@ -13,10 +13,12 @@ import (
 type Module struct {
 	AuthHandler        *handler.AuthHandler
 	AdminUserHandler   *handler.AdminUserHandler
+	AuditHandler       *handler.AuditHandler
 	UserHandler        *handler.UserHandler
 	DashboardHandler   *handler.DashboardHandler
 	TradeHandler       *handler.TradeHandler
 	TransactionHandler *handler.TransactionHandler
+	AuditService       service.AuditService
 	AdminRepo          repository.AdminRepository
 	JWTSecret          string
 }
@@ -27,17 +29,20 @@ func NewModule(db *gorm.DB, cfg config.AdminConfig, logger *slog.Logger) *Module
 	authSvc := service.NewAuthService(repo, cfg.JWTSecret, cfg.JWTExpiry, logger)
 	adminUserSvc := service.NewAdminUserService(repo, logger)
 	userSvc := service.NewUserService(db, logger)
+	auditSvc := service.NewAuditService(db)
 	dashboardSvc := service.NewDashboardService(db, logger)
 	tradeSvc := service.NewTradeService(db)
 	transactionSvc := service.NewTransactionService(db)
 
 	return &Module{
 		AuthHandler:        handler.NewAuthHandler(authSvc),
-		AdminUserHandler:   handler.NewAdminUserHandler(adminUserSvc),
-		UserHandler:        handler.NewUserHandler(userSvc),
+		AdminUserHandler:   handler.NewAdminUserHandler(adminUserSvc, auditSvc),
+		AuditHandler:       handler.NewAuditHandler(auditSvc),
+		UserHandler:        handler.NewUserHandler(userSvc, auditSvc),
 		DashboardHandler:   handler.NewDashboardHandler(dashboardSvc),
-		TradeHandler:       handler.NewTradeHandler(tradeSvc),
+		TradeHandler:       handler.NewTradeHandler(tradeSvc, auditSvc),
 		TransactionHandler: handler.NewTransactionHandler(transactionSvc),
+		AuditService:       auditSvc,
 		AdminRepo:          repo,
 		JWTSecret:          cfg.JWTSecret,
 	}

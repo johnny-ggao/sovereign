@@ -129,6 +129,21 @@ export async function deleteAdmin(id: string) {
   });
 }
 
+/** Audit Logs */
+export async function getAuditLogs(params: {
+  page?: number;
+  limit?: number;
+  action?: string;
+  admin_id?: string;
+  date_from?: string;
+  date_to?: string;
+}) {
+  return request<API.ApiResponse<API.AuditLog[]>>('/audit-logs', {
+    method: 'GET',
+    params,
+  });
+}
+
 /** Trades */
 export async function getTrades(params: {
   page?: number;

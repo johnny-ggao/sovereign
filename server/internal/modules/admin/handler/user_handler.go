@@ -1,6 +1,8 @@
 package handler
 
 import (
+	"fmt"
+	"log"
 	"net/http"
 
 	"github.com/gin-gonic/gin"
@@ -10,11 +12,12 @@ import (
 )
 
 type UserHandler struct {
-	svc service.UserService
+	svc      service.UserService
+	auditSvc service.AuditService
 }
 
-func NewUserHandler(svc service.UserService) *UserHandler {
-	return &UserHandler{svc: svc}
+func NewUserHandler(svc service.UserService, auditSvc service.AuditService) *UserHandler {
+	return &UserHandler{svc: svc, auditSvc: auditSvc}
 }
 
 func (h *UserHandler) List(c *gin.Context) {
@@ -84,6 +87,19 @@ func (h *UserHandler) Disable(c *gin.Context) {
 		return
 	}
 
+	if err := h.auditSvc.Log(
+		c.Request.Context(),
+		c.GetString("admin_id"),
+		c.GetString("admin_email"),
+		"disable_user",
+		"user",
+		userID,
+		"",
+		c.ClientIP(),
+	); err != nil {
+		log.Printf("failed to write audit log: %v", err)
+	}
+
 	response.OK(c, gin.H{"message": "user disabled"})
 }
 
@@ -93,6 +109,19 @@ func (h *UserHandler) Enable(c *gin.Context) {
 	if err := h.svc.Enable(c.Request.Context(), userID); err != nil {
 		response.Fail(c, http.StatusBadRequest, "USER_ENABLE_FAILED", err.Error())
 		return
+	}
+
+	if err := h.auditSvc.Log(
+		c.Request.Context(),
+		c.GetString("admin_id"),
+		c.GetString("admin_email"),
+		"enable_user",
+		"user",
+		userID,
+		"",
+		c.ClientIP(),
+	); err != nil {
+		log.Printf("failed to write audit log: %v", err)
 	}
 
 	response.OK(c, gin.H{"message": "user enabled"})
@@ -107,6 +136,19 @@ func (h *UserHandler) ResetPassword(c *gin.Context) {
 		return
 	}
 
+	if err := h.auditSvc.Log(
+		c.Request.Context(),
+		c.GetString("admin_id"),
+		c.GetString("admin_email"),
+		"reset_password",
+		"user",
+		userID,
+		"",
+		c.ClientIP(),
+	); err != nil {
+		log.Printf("failed to write audit log: %v", err)
+	}
+
 	response.OK(c, gin.H{"temporary_password": tempPassword})
 }
 
@@ -115,6 +157,19 @@ func (h *UserHandler) Reset2FA(c *gin.Context) {
 	if err := h.svc.Reset2FA(c.Request.Context(), userID); err != nil {
 		response.Fail(c, http.StatusBadRequest, "RESET_2FA_FAILED", err.Error())
 		return
+	}
+
+	if err := h.auditSvc.Log(
+		c.Request.Context(),
+		c.GetString("admin_id"),
+		c.GetString("admin_email"),
+		"reset_2fa",
+		"user",
+		userID,
+		"",
+		c.ClientIP(),
+	); err != nil {
+		log.Printf("failed to write audit log: %v", err)
 	}
 	response.OK(c, gin.H{"message": "2fa reset successful"})
 }
@@ -159,6 +214,20 @@ func (h *UserHandler) AdjustBalance(c *gin.Context) {
 	if err := h.svc.AdjustBalance(c.Request.Context(), userID, req, adminID); err != nil {
 		response.Fail(c, http.StatusBadRequest, "ADJUST_BALANCE_FAILED", err.Error())
 		return
+	}
+
+	detail := fmt.Sprintf("currency=%s, amount=%s, reason=%s", req.Currency, req.Amount, req.Reason)
+	if err := h.auditSvc.Log(
+		c.Request.Context(),
+		adminID,
+		c.GetString("admin_email"),
+		"adjust_balance",
+		"user",
+		userID,
+		detail,
+		c.ClientIP(),
+	); err != nil {
+		log.Printf("failed to write audit log: %v", err)
 	}
 
 	response.OK(c, gin.H{"message": "balance adjusted"})
