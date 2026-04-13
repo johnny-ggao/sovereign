@@ -2,6 +2,7 @@ package service
 
 import (
 	"context"
+	"errors"
 	"fmt"
 	"log/slog"
 	"time"
@@ -244,10 +245,21 @@ func (s *userService) AdjustBalance(ctx context.Context, userID string, req dto.
 	}
 
 	var wallet walletmodel.Wallet
-	if err := s.db.WithContext(ctx).
+	err = s.db.WithContext(ctx).
 		Where("user_id = ? AND currency = ?", userID, req.Currency).
-		First(&wallet).Error; err != nil {
-		return fmt.Errorf("find wallet: %w", err)
+		First(&wallet).Error
+	if err != nil {
+		if !errors.Is(err, gorm.ErrRecordNotFound) {
+			return fmt.Errorf("find wallet: %w", err)
+		}
+		// 钱包不存在，自动创建
+		wallet = walletmodel.Wallet{
+			UserID:   userID,
+			Currency: req.Currency,
+		}
+		if err := s.db.WithContext(ctx).Create(&wallet).Error; err != nil {
+			return fmt.Errorf("create wallet: %w", err)
+		}
 	}
 
 	newAvailable := wallet.Available.Add(amount)
