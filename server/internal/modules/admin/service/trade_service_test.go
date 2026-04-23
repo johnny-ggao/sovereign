@@ -3,6 +3,7 @@ package service
 import (
 	"bytes"
 	"context"
+	"strconv"
 	"strings"
 	"testing"
 
@@ -34,9 +35,9 @@ func TestDownloadTemplateIncludesHeadersAndSampleRow(t *testing.T) {
 
 func TestParseImportRowsReturnsTradesAndRowErrors(t *testing.T) {
 	workbook := newImportWorkbook([][]string{
-		{"交易对", "买入交易所", "卖出交易所", "买入价格", "卖出价格", "金额", "溢价率(%)", "盈亏", "手续费", "执行时间"},
-		{"USDT/KRW", "Binance", "Upbit", "1.0000", "1.0350", "10000.00", "3.50", "350.00", "10.00", "2026-04-07 12:00:00"},
-		{"BTC/USDT", "", "Upbit", "80000", "81000", "1.00", "1.25", "1000", "5", "2026-04-07 12:00:00"},
+		{"交易对", "买入交易所", "卖出交易所", "买入价格", "卖出价格", "金额", "溢价率(%)", "盈亏", "手续费"},
+		{"USDT/KRW", "Binance", "Upbit", "1.0000", "1.0350", "10000.00", "3.50", "350.00", "10.00"},
+		{"BTC/USDT", "", "Upbit", "80000", "81000", "1.00", "1.25", "1000", "5"},
 	})
 
 	trades, rowErrors, err := parseImportRows(bytes.NewReader(workbook.Bytes()))

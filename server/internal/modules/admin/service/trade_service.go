@@ -275,10 +275,6 @@ func parseTradeRow(row []string) (*trademodel.Trade, error) {
 	if err != nil {
 		return nil, err
 	}
-	executedAt, err := parseExecutedAt(row)
-	if err != nil {
-		return nil, err
-	}
 
 	return &trademodel.Trade{
 		Pair:         pair,
@@ -291,7 +287,7 @@ func parseTradeRow(row []string) (*trademodel.Trade, error) {
 		PnL:          pnl,
 		Fee:          fee,
 		Source:       tradeSourceImport,
-		ExecutedAt:   executedAt,
+		ExecutedAt:   time.Now(),
 	}, nil
 }
 
@@ -318,20 +314,6 @@ func parseDecimalCell(row []string, index int, label string, required bool) (dec
 	return parsed, nil
 }
 
-func parseExecutedAt(row []string) (time.Time, error) {
-	value, err := requiredCell(row, 9, "执行时间")
-	if err != nil {
-		return time.Time{}, err
-	}
-	for _, format := range supportedTimeFormats {
-		parsed, parseErr := time.Parse(format, value)
-		if parseErr == nil {
-			return parsed, nil
-		}
-	}
-	return time.Time{}, fmt.Errorf("执行时间格式无效")
-}
-
 func cellValue(row []string, index int) string {
 	if index >= len(row) {
 		return ""
@@ -347,24 +329,21 @@ type tradeTemplateWidth struct {
 
 var tradeTemplateHeaders = []string{
 	"交易对", "买入交易所", "卖出交易所", "买入价格", "卖出价格",
-	"金额", "溢价率(%)", "盈亏", "手续费", "执行时间",
+	"金额", "溢价率(%)", "盈亏", "手续费",
 }
 
 var tradeTemplateSampleRow = []string{
 	"USDT/KRW", "Binance", "Upbit", "1.0000", "1.0350",
-	"10000.00", "3.50", "350.00", "10.00", "2026-04-07 12:00:00",
+	"10000.00", "3.50", "350.00", "10.00",
 }
 
-var tradeTemplateColumns = []string{"A", "B", "C", "D", "E", "F", "G", "H", "I", "J"}
+var tradeTemplateColumns = []string{"A", "B", "C", "D", "E", "F", "G", "H", "I"}
 
 var tradeTemplateWidths = []tradeTemplateWidth{
 	{Start: "A", End: "A", Width: 18},
 	{Start: "B", End: "C", Width: 16},
 	{Start: "D", End: "I", Width: 14},
-	{Start: "J", End: "J", Width: 22},
 }
-
-var supportedTimeFormats = []string{"2006-01-02 15:04:05", time.RFC3339}
 
 const (
 	tradeTemplateSheetName = "Trades"
