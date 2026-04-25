@@ -84,8 +84,8 @@ func (j *SettlementJob) RunForDate(ctx context.Context, date time.Time) error {
 
 	j.logger.Info("settlement started", slog.String("period", period))
 
-	// 1. 获取所有 active 投资
-	activeInvs, err := j.invRepo.FindAllActive(ctx)
+	// 1. 获取结算日之前创建的所有 active 投资（T+1：投资当天不参与结算，次日起计）
+	activeInvs, err := j.invRepo.FindAllActiveBeforeDate(ctx, dayStart)
 	if err != nil {
 		return fmt.Errorf("find active investments: %w", err)
 	}

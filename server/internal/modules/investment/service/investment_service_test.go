@@ -96,6 +96,10 @@ func (s *stubInvestmentRepository) FindAllActive(context.Context) ([]model.Inves
 	panic("unexpected FindAllActive call")
 }
 
+func (s *stubInvestmentRepository) FindAllActiveBeforeDate(context.Context, time.Time) ([]model.Investment, error) {
+	panic("unexpected FindAllActiveBeforeDate call")
+}
+
 func (s *stubInvestmentRepository) Update(_ context.Context, inv *model.Investment) error {
 	s.updated = inv
 	return nil

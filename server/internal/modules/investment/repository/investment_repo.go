@@ -2,6 +2,7 @@ package repository
 
 import (
 	"context"
+	"time"
 
 	"github.com/sovereign-fund/sovereign/internal/modules/investment/model"
 	"gorm.io/gorm"
@@ -13,6 +14,8 @@ type InvestmentRepository interface {
 	FindByUserID(ctx context.Context, userID string) ([]model.Investment, error)
 	FindActiveByUserID(ctx context.Context, userID string) ([]model.Investment, error)
 	FindAllActive(ctx context.Context) ([]model.Investment, error)
+	// FindAllActiveBeforeDate 返回在 before 时间之前创建的所有活跃投资（用于 T+1 结算）
+	FindAllActiveBeforeDate(ctx context.Context, before time.Time) ([]model.Investment, error)
 	Update(ctx context.Context, inv *model.Investment) error
 }
 
@@ -55,6 +58,14 @@ func (r *investmentRepository) FindAllActive(ctx context.Context) ([]model.Inves
 	var invs []model.Investment
 	err := r.db.WithContext(ctx).
 		Where("status = ?", model.InvestStatusActive).
+		Find(&invs).Error
+	return invs, err
+}
+
+func (r *investmentRepository) FindAllActiveBeforeDate(ctx context.Context, before time.Time) ([]model.Investment, error) {
+	var invs []model.Investment
+	err := r.db.WithContext(ctx).
+		Where("status = ? AND start_date < ?", model.InvestStatusActive, before).
 		Find(&invs).Error
 	return invs, err
 }
