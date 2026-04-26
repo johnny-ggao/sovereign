@@ -19,7 +19,8 @@ type LoginRequest struct {
 }
 
 type Verify2FARequest struct {
-	Code string `json:"code" binding:"required,len=6"`
+	Email string `json:"email" binding:"required,email"`
+	Code  string `json:"code" binding:"required,len=6"`
 }
 
 type RefreshTokenRequest struct {

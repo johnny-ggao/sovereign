@@ -27,6 +27,13 @@ export function useLogin() {
   })
 }
 
+export function useVerify2FA() {
+  return useMutation({
+    mutationFn: (data: { email: string; code: string }) =>
+      api.post<AuthResponse>("/auth/verify-2fa", data),
+  })
+}
+
 export function useGoogleLogin() {
   return useMutation({
     mutationFn: (idToken: string) =>

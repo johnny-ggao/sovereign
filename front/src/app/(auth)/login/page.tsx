@@ -27,7 +27,7 @@ export default function LoginPage() {
     setError("")
     try {
       const res = await login.mutateAsync({ email, password })
-      if (res.requires_2fa) { router.push("/verify-2fa"); return }
+      if (res.requires_2fa) { sessionStorage.setItem("2fa_email", email); router.push("/verify-2fa"); return }
       if (res.access_token && res.refresh_token && res.user) {
         setAuth(res.user, res.access_token, res.refresh_token)
         router.push("/dashboard")

@@ -17,11 +17,11 @@ func RegisterRoutes(rg *gin.RouterGroup, h *handler.AuthHandler, jwtMgr *jwtpkg.
 		auth.POST("/refresh", h.RefreshToken)
 		auth.POST("/forgot-password", h.ForgotPassword)
 		auth.POST("/reset-password", h.ResetPassword)
+		auth.POST("/verify-2fa", h.Verify2FA) // 公开路由：2FA 验证时尚无 token
 	}
 
 	protected := auth.Group("", middleware.Auth(jwtMgr))
 	{
-		protected.POST("/verify-2fa", h.Verify2FA)
 		protected.POST("/logout", h.Logout)
 		protected.GET("/profile", h.GetProfile)
 	}

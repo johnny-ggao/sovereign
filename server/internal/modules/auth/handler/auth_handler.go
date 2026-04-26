@@ -97,9 +97,7 @@ func (h *AuthHandler) Verify2FA(c *gin.Context) {
 		return
 	}
 
-	userID, _ := c.Get("user_id")
-
-	resp, err := h.authSvc.Verify2FA(c.Request.Context(), userID.(string), req.Code, c.GetHeader("User-Agent"), c.ClientIP())
+	resp, err := h.authSvc.Verify2FAByEmail(c.Request.Context(), req.Email, req.Code, c.GetHeader("User-Agent"), c.ClientIP())
 	if err != nil {
 		handleError(c, err)
 		return

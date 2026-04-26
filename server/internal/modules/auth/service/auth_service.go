@@ -23,6 +23,7 @@ type AuthService interface {
 	Register(ctx context.Context, req dto.RegisterRequest, userAgent, clientIP string) (*dto.AuthResponse, error)
 	Login(ctx context.Context, req dto.LoginRequest, userAgent, clientIP string) (*dto.AuthResponse, error)
 	Verify2FA(ctx context.Context, userID, code, userAgent, clientIP string) (*dto.AuthResponse, error)
+	Verify2FAByEmail(ctx context.Context, email, code, userAgent, clientIP string) (*dto.AuthResponse, error)
 	RefreshToken(ctx context.Context, refreshToken, userAgent, clientIP string) (*dto.AuthResponse, error)
 	ForgotPassword(ctx context.Context, email string) error
 	ResetPassword(ctx context.Context, req dto.ResetPasswordRequest) error
@@ -174,6 +175,24 @@ func (s *authService) Verify2FA(ctx context.Context, userID, code, userAgent, cl
 	user, err := s.userRepo.FindByID(ctx, userID)
 	if err != nil {
 		return nil, apperr.Wrap(apperr.ErrInternal, err)
+	}
+
+	if !user.TwoFAEnabled || user.TwoFASecret == "" {
+		return nil, apperr.ErrInvalid2FA
+	}
+
+	valid, err := crypto.VerifyTOTP(user.TwoFASecret, code)
+	if err != nil || !valid {
+		return nil, apperr.ErrInvalid2FA
+	}
+
+	return s.issueTokens(ctx, user, userAgent, clientIP)
+}
+
+func (s *authService) Verify2FAByEmail(ctx context.Context, email, code, userAgent, clientIP string) (*dto.AuthResponse, error) {
+	user, err := s.userRepo.FindByEmail(ctx, email)
+	if err != nil {
+		return nil, apperr.ErrInvalidCredentials
 	}
 
 	if !user.TwoFAEnabled || user.TwoFASecret == "" {

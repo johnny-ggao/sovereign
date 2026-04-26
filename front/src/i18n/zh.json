@@ -49,7 +49,13 @@
     "verifyCode": "验证码",
     "otpPlaceholder": "6位数字",
     "back": "返回",
-    "orContinueWith": "或通过以下方式继续"
+    "orContinueWith": "或通过以下方式继续",
+    "twoFA": "两步验证",
+    "twoFADesc": "请输入验证器 App 中的 6 位验证码",
+    "verificationCode": "验证码",
+    "verify": "验证",
+    "verifying": "验证中...",
+    "backToLogin": "返回登录"
   },
   "forgot": {
     "codeSentTo": "验证码已发送至",
