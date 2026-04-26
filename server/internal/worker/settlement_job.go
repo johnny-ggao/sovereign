@@ -195,7 +195,7 @@ func (j *SettlementJob) RunForDate(ctx context.Context, date time.Time) error {
 						SellPrice:    t.SellPrice,
 						Amount:       t.Amount.Mul(ratio).Round(18),
 						PremiumPct:   t.PremiumPct,
-						PnL:          t.PnL.Mul(ratio).Round(18),
+						PnL:          t.PnL.Mul(ratio).Mul(j.feeRate).Round(18), // 扣除绩效费后的净盈亏，与 net_return 口径一致
 						Fee:          t.Fee.Mul(ratio).Round(18),
 						Ratio:        ratio,
 						ExecutedAt:   t.ExecutedAt,
