@@ -266,6 +266,50 @@ func (s *withdrawReviewService) Retry(ctx context.Context, txID, adminID string)
 	return s.submitToCobo(ctx, tx, adminID)
 }
 
+type PGReviewQuerier struct {
+	db *gorm.DB
+}
+
+func NewPGReviewQuerier(db *gorm.DB) *PGReviewQuerier { return &PGReviewQuerier{db: db} }
+
+func (q *PGReviewQuerier) Query(ctx context.Context, p dto.WithdrawReviewListQuery) ([]reviewListRow, int64, error) {
+	db := q.db.WithContext(ctx).Table("transactions").
+		Select(`transactions.id, transactions.user_id, users.email AS user_email,
+			transactions.currency, transactions.network, transactions.amount, transactions.address,
+			transactions.status, transactions.review_status, transactions.reject_reason,
+			transactions.submit_attempts, transactions.last_submit_error, transactions.last_submit_at,
+			transactions.reviewed_by, transactions.reviewed_at, transactions.created_at,
+			transactions.external_id, transactions.tx_hash`).
+		Joins("LEFT JOIN users ON users.id = transactions.user_id").
+		Where("transactions.type = ?", "withdraw")
+
+	if p.ReviewStatus != "" {
+		db = db.Where("transactions.review_status = ?", p.ReviewStatus)
+	}
+	if p.UserID != "" {
+		db = db.Where("transactions.user_id = ?", p.UserID)
+	}
+	if p.DateFrom != "" {
+		db = db.Where("transactions.created_at >= ?", p.DateFrom)
+	}
+	if p.DateTo != "" {
+		db = db.Where("transactions.created_at < ?", p.DateTo+" 23:59:59")
+	}
+
+	var total int64
+	if err := db.Count(&total).Error; err != nil {
+		return nil, 0, fmt.Errorf("count: %w", err)
+	}
+
+	var rows []reviewListRow
+	offset := (p.Page - 1) * p.Limit
+	if err := db.Order("transactions.created_at DESC").Offset(offset).Limit(p.Limit).Find(&rows).Error; err != nil {
+		return nil, 0, fmt.Errorf("find: %w", err)
+	}
+	return rows, total, nil
+}
+
 // Compile-time assertions: production repos satisfy our narrow interfaces.
 var _ walletReader = (walletrepo.WalletRepository)(nil)
 var _ txWriter = (walletrepo.TransactionRepository)(nil)
+var _ reviewQuerier = (*PGReviewQuerier)(nil)
