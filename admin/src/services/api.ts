@@ -210,3 +210,56 @@ export async function getTransactionStats() {
     method: 'GET',
   });
 }
+
+/** Withdrawals review */
+export interface WithdrawReviewItem {
+  id: string;
+  user_id: string;
+  user_email: string;
+  currency: string;
+  network: string;
+  amount: string;
+  address: string;
+  status: string;
+  review_status: 'pending_review' | 'submitted' | 'submit_failed' | 'rejected' | 'cancelled';
+  reject_reason?: string;
+  submit_attempts: number;
+  last_submit_error?: string;
+  last_submit_at?: string;
+  reviewed_by?: string;
+  reviewed_at?: string;
+  external_id?: string;
+  tx_hash?: string;
+  created_at: string;
+}
+
+export async function listWithdrawals(params: {
+  review_status?: string;
+  page?: number;
+  limit?: number;
+  user_id?: string;
+}) {
+  return request<API.ApiResponse<WithdrawReviewItem[]>>('/withdrawals', {
+    method: 'GET',
+    params,
+  });
+}
+
+export async function approveWithdrawal(id: string) {
+  return request<API.ApiResponse<{ message: string }>>(`/withdrawals/${id}/approve`, {
+    method: 'POST',
+  });
+}
+
+export async function rejectWithdrawal(id: string, reason: string) {
+  return request<API.ApiResponse<{ message: string }>>(`/withdrawals/${id}/reject`, {
+    method: 'POST',
+    data: { reason },
+  });
+}
+
+export async function retryWithdrawal(id: string) {
+  return request<API.ApiResponse<{ message: string }>>(`/withdrawals/${id}/retry`, {
+    method: 'POST',
+  });
+}
