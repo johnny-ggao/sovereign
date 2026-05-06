@@ -122,6 +122,8 @@ export interface Transaction {
   address: string
   tx_hash: string
   status: string
+  review_status?: string
+  reject_reason?: string
   confirmed_at: string | null
   created_at: string
 }

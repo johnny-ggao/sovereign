@@ -2,7 +2,7 @@
 
 import { useState, useEffect } from "react"
 import { useRouter } from "next/navigation"
-import { useWallets, useTransactions, useDepositAddress, useWhitelistAddresses, useAddWhitelistAddress, useRemoveWhitelistAddress, useWithdraw, useSecurityOverview, useClaimEarnings } from "@/hooks/use-api"
+import { useWallets, useTransactions, useDepositAddress, useWhitelistAddresses, useAddWhitelistAddress, useRemoveWhitelistAddress, useWithdraw, useCancelWithdraw, useSecurityOverview, useClaimEarnings } from "@/hooks/use-api"
 import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
 import { Label } from "@/components/ui/label"
@@ -41,6 +41,7 @@ export default function WalletPage() {
   const removeAddress = useRemoveWhitelistAddress()
   const depositAddr = useDepositAddress()
   const withdraw = useWithdraw()
+  const cancelWithdraw = useCancelWithdraw()
   const claimEarnings = useClaimEarnings()
   const { data: security } = useSecurityOverview()
   const router = useRouter()
@@ -158,10 +159,41 @@ export default function WalletPage() {
                         <p className={`text-sm font-semibold ${tx.type === "deposit" ? "text-success" : "text-destructive"}`}>
                           {tx.type === "deposit" ? "+" : "-"}{formatCurrency(tx.amount)} USDT
                         </p>
-                        <Badge variant="outline" className={`text-[10px] ${tx.status === "confirmed" ? "border-success/30 text-success" : "border-muted-foreground/30"}`}>
-                          {tx.status}
-                        </Badge>
+                        {tx.type === "withdraw" && tx.review_status ? (
+                          <div className="flex flex-col items-end gap-0.5">
+                            <Badge variant="outline" className={`text-[10px] ${tx.review_status === "submitted" ? "border-success/30 text-success" : tx.review_status === "rejected" || tx.review_status === "cancelled" ? "border-destructive/30 text-destructive" : "border-muted-foreground/30"}`}>
+                              {t(`wallet.reviewStatus_${tx.review_status}`)}
+                            </Badge>
+                            {tx.review_status === "rejected" && tx.reject_reason ? (
+                              <span className="text-[10px] text-muted-foreground" title={tx.reject_reason}>
+                                {t("wallet.rejectReason")}: {tx.reject_reason}
+                              </span>
+                            ) : null}
+                          </div>
+                        ) : (
+                          <Badge variant="outline" className={`text-[10px] ${tx.status === "confirmed" ? "border-success/30 text-success" : "border-muted-foreground/30"}`}>
+                            {tx.status}
+                          </Badge>
+                        )}
                       </div>
+                      {tx.type === "withdraw" && tx.review_status === "pending_review" ? (
+                        <button
+                          onClick={(e) => {
+                            e.preventDefault()
+                            e.stopPropagation()
+                            if (window.confirm(t("wallet.cancelConfirm"))) {
+                              cancelWithdraw.mutate(tx.id, {
+                                onSuccess: () => toast.success(t("wallet.reviewStatus_cancelled")),
+                                onError: (err) => toast.error(err instanceof Error ? err.message : "Cancel failed"),
+                              })
+                            }
+                          }}
+                          disabled={cancelWithdraw.isPending}
+                          className="rounded-lg border border-destructive/30 px-2 py-1 text-[10px] font-medium text-destructive hover:bg-destructive/10 disabled:opacity-50"
+                        >
+                          {t("wallet.cancelWithdraw")}
+                        </button>
+                      ) : null}
                       {explorerUrl && <ExternalLink className="h-3.5 w-3.5 text-muted-foreground" />}
                     </div>
                   </Wrapper>
@@ -253,10 +285,10 @@ export default function WalletPage() {
                   <Label className="text-xs text-muted-foreground">{t("wallet.withdraw2fa")}</Label>
                   <Input placeholder="000000" maxLength={6} value={withdrawForm.two_fa_code} onChange={(e) => setWithdrawForm((p) => ({ ...p, two_fa_code: e.target.value }))} className="h-10 rounded-lg border-0 bg-input text-center tracking-widest" />
                 </div>
-                <Button className="h-12 w-full rounded-xl font-semibold" disabled={withdraw.isPending || !withdrawForm.address || !withdrawForm.amount}
+                <Button className="h-12 w-full rounded-xl font-semibold" disabled={withdraw.isPending || !withdrawForm.address || !withdrawForm.amount || !withdrawForm.two_fa_code}
                   onClick={() => withdraw.mutate(withdrawForm, {
                     onSuccess: () => {
-                      toast.success(t("wallet.withdrawSuccess"))
+                      toast.success(t("wallet.withdrawSubmittedQueued"))
                       setWithdrawForm({ currency: "USDT", network: "BEP20", address: "", amount: "", two_fa_code: "" })
                       setTab("activity")
                     },

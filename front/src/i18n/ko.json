@@ -163,7 +163,16 @@
     "setup2fa": "2FA 설정하기",
     "earnings": "미수령 수익",
     "claimEarnings": "수령",
-    "earningsClaimed": "수익이 사용 가능 잔액으로 이체되었습니다"
+    "earningsClaimed": "수익이 사용 가능 잔액으로 이체되었습니다",
+    "reviewStatus_pending_review": "심사 중",
+    "reviewStatus_submit_failed": "제출 보류 (재시도 중)",
+    "reviewStatus_submitted": "제출됨",
+    "reviewStatus_rejected": "거절됨",
+    "reviewStatus_cancelled": "취소됨",
+    "cancelWithdraw": "신청 취소",
+    "withdrawSubmittedQueued": "출금 신청이 제출되었습니다. 관리자 심사를 기다리는 중입니다.",
+    "rejectReason": "거절 사유",
+    "cancelConfirm": "이 출금 신청을 취소하시겠습니까? 금액이 사용 가능 잔액으로 환불됩니다."
   },
   "investment": {
     "title": "투자 관리",

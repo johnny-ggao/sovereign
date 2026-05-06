@@ -120,6 +120,17 @@ export function useWithdraw() {
   })
 }
 
+export function useCancelWithdraw() {
+  const qc = useQueryClient()
+  return useMutation({
+    mutationFn: (txId: string) => api.delete(`/wallets/withdraw/${txId}`),
+    onSuccess: () => {
+      qc.invalidateQueries({ queryKey: ["transactions"] })
+      qc.invalidateQueries({ queryKey: ["wallets"] })
+    },
+  })
+}
+
 export function useClaimEarnings() {
   const qc = useQueryClient()
   return useMutation({

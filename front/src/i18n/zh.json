@@ -163,7 +163,16 @@
     "setup2fa": "去绑定 2FA",
     "earnings": "待提取收益",
     "claimEarnings": "提取收益",
-    "earningsClaimed": "收益已提取到可用余额"
+    "earningsClaimed": "收益已提取到可用余额",
+    "reviewStatus_pending_review": "审核中",
+    "reviewStatus_submit_failed": "提交受阻 (重试中)",
+    "reviewStatus_submitted": "已提交",
+    "reviewStatus_rejected": "已拒绝",
+    "reviewStatus_cancelled": "已取消",
+    "cancelWithdraw": "撤销申请",
+    "withdrawSubmittedQueued": "提现申请已提交，等待管理员审核",
+    "rejectReason": "拒绝原因",
+    "cancelConfirm": "确认撤销该笔提现申请？金额将退回到可用余额。"
   },
   "investment": {
     "title": "投资管理",

@@ -163,7 +163,16 @@
     "setup2fa": "Set Up 2FA",
     "earnings": "Pending Earnings",
     "claimEarnings": "Claim",
-    "earningsClaimed": "Earnings claimed to available balance"
+    "earningsClaimed": "Earnings claimed to available balance",
+    "reviewStatus_pending_review": "Pending review",
+    "reviewStatus_submit_failed": "Submit blocked (retrying)",
+    "reviewStatus_submitted": "Submitted",
+    "reviewStatus_rejected": "Rejected",
+    "reviewStatus_cancelled": "Cancelled",
+    "cancelWithdraw": "Cancel request",
+    "withdrawSubmittedQueued": "Withdrawal request submitted, awaiting admin review",
+    "rejectReason": "Reason",
+    "cancelConfirm": "Cancel this withdrawal? The amount will be refunded to your available balance."
   },
   "investment": {
     "title": "Investments",
