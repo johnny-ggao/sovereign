@@ -23,7 +23,7 @@ type Transaction struct {
 
 	// Review-layer fields. Populated only for type='withdraw'.
 	ReviewStatus    string     `gorm:"type:varchar(32);index" json:"review_status,omitempty"`
-	ReviewedBy      string     `gorm:"type:uuid" json:"reviewed_by,omitempty"`
+	ReviewedBy      *string    `gorm:"type:uuid" json:"reviewed_by,omitempty"`
 	ReviewedAt      *time.Time `json:"reviewed_at,omitempty"`
 	RejectReason    string     `gorm:"type:varchar(500)" json:"reject_reason,omitempty"`
 	SubmitAttempts  int        `gorm:"not null;default:0" json:"submit_attempts"`
