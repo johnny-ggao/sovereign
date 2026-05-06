@@ -1,6 +1,10 @@
 package dto
 
-import "time"
+import (
+	"time"
+
+	"github.com/shopspring/decimal"
+)
 
 type LoginResponse struct {
 	Token              string        `json:"token"`
@@ -164,6 +168,27 @@ type TransactionStats struct {
 	WithdrawCount1D  int64  `json:"withdraw_count_1d"`
 	WithdrawCount7D  int64  `json:"withdraw_count_7d"`
 	WithdrawCount30D int64  `json:"withdraw_count_30d"`
+}
+
+type WithdrawReviewItem struct {
+	ID              string          `json:"id"`
+	UserID          string          `json:"user_id"`
+	UserEmail       string          `json:"user_email"`
+	Currency        string          `json:"currency"`
+	Network         string          `json:"network"`
+	Amount          decimal.Decimal `json:"amount"`
+	Address         string          `json:"address"`
+	Status          string          `json:"status"`
+	ReviewStatus    string          `json:"review_status"`
+	RejectReason    string          `json:"reject_reason,omitempty"`
+	SubmitAttempts  int             `json:"submit_attempts"`
+	LastSubmitError string          `json:"last_submit_error,omitempty"`
+	LastSubmitAt    *string         `json:"last_submit_at,omitempty"`
+	ReviewedBy      string          `json:"reviewed_by,omitempty"`
+	ReviewedAt      *string         `json:"reviewed_at,omitempty"`
+	CreatedAt       string          `json:"created_at"`
+	ExternalID      string          `json:"external_id,omitempty"`
+	TxHash          string          `json:"tx_hash,omitempty"`
 }
 
 type AuditLogResponse struct {

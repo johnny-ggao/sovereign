@@ -77,3 +77,16 @@ type AuditLogListQuery struct {
 	DateFrom string `form:"date_from"`
 	DateTo   string `form:"date_to"`
 }
+
+type WithdrawReviewListQuery struct {
+	ReviewStatus string `form:"review_status"`
+	UserID       string `form:"user_id"`
+	DateFrom     string `form:"date_from"`
+	DateTo       string `form:"date_to"`
+	Page         int    `form:"page"`
+	Limit        int    `form:"limit"`
+}
+
+type RejectWithdrawRequest struct {
+	Reason string `json:"reason" binding:"required,min=2,max=500"`
+}
