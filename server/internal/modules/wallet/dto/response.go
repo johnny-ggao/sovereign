@@ -40,15 +40,17 @@ type WhitelistAddressResponse struct {
 }
 
 type TransactionResponse struct {
-	ID          string          `json:"id"`
-	Type        string          `json:"type"`
-	Currency    string          `json:"currency"`
-	Network     string          `json:"network"`
-	Amount      decimal.Decimal `json:"amount"`
-	Fee         decimal.Decimal `json:"fee"`
-	Address     string          `json:"address"`
-	TxHash      string          `json:"tx_hash"`
-	Status      string          `json:"status"`
-	ConfirmedAt *string         `json:"confirmed_at"`
-	CreatedAt   string          `json:"created_at"`
+	ID           string          `json:"id"`
+	Type         string          `json:"type"`
+	Currency     string          `json:"currency"`
+	Network      string          `json:"network"`
+	Amount       decimal.Decimal `json:"amount"`
+	Fee          decimal.Decimal `json:"fee"`
+	Address      string          `json:"address"`
+	TxHash       string          `json:"tx_hash"`
+	Status       string          `json:"status"`
+	ReviewStatus string          `json:"review_status,omitempty"`
+	RejectReason string          `json:"reject_reason,omitempty"`
+	ConfirmedAt  *string         `json:"confirmed_at"`
+	CreatedAt    string          `json:"created_at"`
 }

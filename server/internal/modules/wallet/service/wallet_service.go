@@ -359,6 +359,8 @@ func (s *walletService) GetTransactions(ctx context.Context, userID, txType stri
 			Status:    tx.Status,
 			CreatedAt: tx.CreatedAt.Format(time.RFC3339),
 		}
+		r.ReviewStatus = tx.ReviewStatus
+		r.RejectReason = tx.RejectReason
 		if tx.ConfirmedAt != nil {
 			t := tx.ConfirmedAt.Format(time.RFC3339)
 			r.ConfirmedAt = &t
@@ -394,6 +396,8 @@ func (s *walletService) GetTransaction(ctx context.Context, userID, txID string)
 		Status:    tx.Status,
 		CreatedAt: tx.CreatedAt.Format(time.RFC3339),
 	}
+	r.ReviewStatus = tx.ReviewStatus
+	r.RejectReason = tx.RejectReason
 	if tx.ConfirmedAt != nil {
 		t := tx.ConfirmedAt.Format(time.RFC3339)
 		r.ConfirmedAt = &t

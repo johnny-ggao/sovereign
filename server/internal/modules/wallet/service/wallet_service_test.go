@@ -169,6 +169,43 @@ func TestCancelWithdraw_RejectsWrongOwner(t *testing.T) {
 	}
 }
 
+func TestGetTransactions_IncludesReviewFields(t *testing.T) {
+	ctx := context.Background()
+	rejectedAt := time.Now()
+	txRepo := &stubTxRepo{
+		listByUser: []model.Transaction{
+			{
+				ID: "tx1", UserID: "u1", Type: model.TxTypeWithdraw,
+				Currency: "USDT", Network: "TRC20",
+				Amount: decimal.NewFromInt(50), Address: "Tabc",
+				Status:       model.TxStatusCancelled,
+				ReviewStatus: model.ReviewStatusRejected,
+				RejectReason: "address mismatch",
+				ReviewedAt:   &rejectedAt,
+			},
+		},
+		listTotal: 1,
+	}
+	svc := NewWalletService(&stubWalletRepo{}, &stubAddressRepo{}, txRepo, &mockCoboProvider{}, &spyEventBus{}, nil, newTestLogger(), 24*time.Hour)
+
+	items, total, err := svc.GetTransactions(ctx, "u1", "withdraw", 1, 10)
+	if err != nil {
+		t.Fatalf("GetTransactions error = %v", err)
+	}
+	if total != 1 {
+		t.Errorf("total = %d, want 1", total)
+	}
+	if len(items) != 1 {
+		t.Fatalf("items length = %d, want 1", len(items))
+	}
+	if items[0].ReviewStatus != "rejected" {
+		t.Errorf("ReviewStatus = %q, want rejected", items[0].ReviewStatus)
+	}
+	if items[0].RejectReason != "address mismatch" {
+		t.Errorf("RejectReason = %q, want 'address mismatch'", items[0].RejectReason)
+	}
+}
+
 func TestCancelWithdraw_RejectsNonPendingReview(t *testing.T) {
 	ctx := context.Background()
 	txRepo := &stubTxRepo{byID: map[string]*model.Transaction{
