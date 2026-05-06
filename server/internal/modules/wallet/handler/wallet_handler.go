@@ -72,6 +72,17 @@ func (h *WalletHandler) Withdraw(c *gin.Context) {
 	response.Created(c, resp)
 }
 
+func (h *WalletHandler) CancelWithdraw(c *gin.Context) {
+	userID := c.GetString("user_id")
+	txID := c.Param("id")
+
+	if err := h.walletSvc.CancelWithdraw(c.Request.Context(), userID, txID); err != nil {
+		handleError(c, err)
+		return
+	}
+	response.NoContent(c)
+}
+
 func (h *WalletHandler) AddWhitelistAddress(c *gin.Context) {
 	userID := c.GetString("user_id")
 

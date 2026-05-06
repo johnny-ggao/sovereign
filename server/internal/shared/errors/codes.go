@@ -20,6 +20,7 @@ var (
 	ErrAddressCooldown   = New(http.StatusTooManyRequests, "WALLET_ADDRESS_COOLDOWN", "new address requires 24h cooldown")
 	ErrAddressNotWhitelisted = New(http.StatusForbidden, "WALLET_ADDRESS_NOT_WHITELISTED", "address not in whitelist")
 	ErrWithdrawLimitExceeded = New(http.StatusUnprocessableEntity, "WALLET_WITHDRAW_LIMIT", "withdrawal limit exceeded")
+	ErrWithdrawNotCancellable = New(http.StatusUnprocessableEntity, "WITHDRAW_NOT_CANCELLABLE", "withdrawal cannot be cancelled in current state")
 )
 
 // Investment

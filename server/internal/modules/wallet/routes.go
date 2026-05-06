@@ -17,6 +17,7 @@ func RegisterRoutes(rg *gin.RouterGroup, h *handler.WalletHandler) {
 		withdraw := wallets.Group("", middleware.RateLimit(10, time.Minute))
 		{
 			withdraw.POST("/withdraw", h.Withdraw)
+			withdraw.DELETE("/withdraw/:id", h.CancelWithdraw)
 		}
 
 		wallets.POST("/claim-earnings", h.ClaimEarnings)

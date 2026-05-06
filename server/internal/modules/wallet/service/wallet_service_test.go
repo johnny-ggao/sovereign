@@ -2,6 +2,7 @@ package service
 
 import (
 	"context"
+	"errors"
 	"io"
 	"log/slog"
 	"testing"
@@ -10,6 +11,7 @@ import (
 	"github.com/shopspring/decimal"
 	"github.com/sovereign-fund/sovereign/internal/modules/wallet/dto"
 	"github.com/sovereign-fund/sovereign/internal/modules/wallet/model"
+	apperr "github.com/sovereign-fund/sovereign/internal/shared/errors"
 )
 
 func newTestLogger() *slog.Logger {
@@ -97,5 +99,94 @@ func TestWithdraw_QueuesPendingReviewWithoutCallingCobo(t *testing.T) {
 	}
 	if len(bus.published) != 0 {
 		t.Errorf("event bus publishes = %d, want 0 (no event published from Withdraw)", len(bus.published))
+	}
+}
+
+func TestCancelWithdraw_RestoresFrozen(t *testing.T) {
+	ctx := context.Background()
+	walletRepo := &stubWalletRepo{
+		wallet: &model.Wallet{
+			ID:        "w1",
+			UserID:    "u1",
+			Currency:  "USDT",
+			Available: decimal.NewFromInt(50),
+			Frozen:    decimal.NewFromInt(50),
+		},
+	}
+	txRepo := &stubTxRepo{
+		byID: map[string]*model.Transaction{
+			"tx1": {
+				ID:           "tx1",
+				UserID:       "u1",
+				Type:         model.TxTypeWithdraw,
+				Currency:     "USDT",
+				Amount:       decimal.NewFromInt(50),
+				Status:       model.TxStatusPending,
+				ReviewStatus: model.ReviewStatusPendingReview,
+			},
+		},
+	}
+	svc := NewWalletService(walletRepo, &stubAddressRepo{}, txRepo, &mockCoboProvider{}, &spyEventBus{}, nil, newTestLogger(), 24*time.Hour)
+
+	if err := svc.CancelWithdraw(ctx, "u1", "tx1"); err != nil {
+		t.Fatalf("CancelWithdraw() error = %v, want nil", err)
+	}
+
+	if !walletRepo.lastAvailable.Equal(decimal.NewFromInt(100)) {
+		t.Errorf("wallet available after refund = %s, want 100", walletRepo.lastAvailable.String())
+	}
+	if !walletRepo.lastFrozen.Equal(decimal.Zero) {
+		t.Errorf("wallet frozen after refund = %s, want 0", walletRepo.lastFrozen.String())
+	}
+
+	updated, ok := txRepo.lastReviewUpdate["tx1"]
+	if !ok {
+		t.Fatal("UpdateReview was not called for tx1")
+	}
+	if got := updated["review_status"]; got != model.ReviewStatusCancelled {
+		t.Errorf("review_status = %v, want %v", got, model.ReviewStatusCancelled)
+	}
+	if got := updated["status"]; got != model.TxStatusCancelled {
+		t.Errorf("status = %v, want %v", got, model.TxStatusCancelled)
+	}
+}
+
+func TestCancelWithdraw_RejectsWrongOwner(t *testing.T) {
+	ctx := context.Background()
+	txRepo := &stubTxRepo{byID: map[string]*model.Transaction{
+		"tx1": {
+			ID:           "tx1",
+			UserID:       "other",
+			Type:         model.TxTypeWithdraw,
+			ReviewStatus: model.ReviewStatusPendingReview,
+		},
+	}}
+	svc := NewWalletService(&stubWalletRepo{}, &stubAddressRepo{}, txRepo, &mockCoboProvider{}, &spyEventBus{}, nil, newTestLogger(), 24*time.Hour)
+
+	err := svc.CancelWithdraw(ctx, "u1", "tx1")
+	if !errors.Is(err, apperr.ErrNotFound) {
+		t.Fatalf("CancelWithdraw() error = %v, want ErrNotFound", err)
+	}
+}
+
+func TestCancelWithdraw_RejectsNonPendingReview(t *testing.T) {
+	ctx := context.Background()
+	txRepo := &stubTxRepo{byID: map[string]*model.Transaction{
+		"tx1": {
+			ID:           "tx1",
+			UserID:       "u1",
+			Type:         model.TxTypeWithdraw,
+			ReviewStatus: model.ReviewStatusSubmitted,
+		},
+	}}
+	svc := NewWalletService(&stubWalletRepo{}, &stubAddressRepo{}, txRepo, &mockCoboProvider{}, &spyEventBus{}, nil, newTestLogger(), 24*time.Hour)
+
+	err := svc.CancelWithdraw(ctx, "u1", "tx1")
+	var ae *apperr.AppError
+	if !errors.As(err, &ae) {
+		t.Fatalf("CancelWithdraw() error = %v, want *apperr.AppError", err)
+	}
+	if ae.Code != "WITHDRAW_NOT_CANCELLABLE" {
+		t.Errorf("AppError.Code = %q, want %q", ae.Code, "WITHDRAW_NOT_CANCELLABLE")
 	}
 }

@@ -27,6 +27,7 @@ type WalletService interface {
 	GetWallets(ctx context.Context, userID string) (*dto.WalletOverview, error)
 	GetDepositAddress(ctx context.Context, userID string, req dto.GetDepositAddressRequest) (*dto.DepositAddressResponse, error)
 	Withdraw(ctx context.Context, userID string, req dto.WithdrawRequest) (*dto.WithdrawResponse, error)
+	CancelWithdraw(ctx context.Context, userID, txID string) error
 
 	AddWhitelistAddress(ctx context.Context, userID string, req dto.AddWhitelistAddressRequest) (*dto.WhitelistAddressResponse, error)
 	GetWhitelistAddresses(ctx context.Context, userID string) ([]dto.WhitelistAddressResponse, error)
@@ -230,6 +231,52 @@ func (s *walletService) Withdraw(ctx context.Context, userID string, req dto.Wit
 		Status:        model.ReviewStatusPendingReview,
 		Message:       "withdrawal request queued for admin review",
 	}, nil
+}
+
+func (s *walletService) CancelWithdraw(ctx context.Context, userID, txID string) error {
+	tx, err := s.txRepo.FindByID(ctx, txID)
+	if err != nil {
+		if errors.Is(err, gorm.ErrRecordNotFound) {
+			return apperr.ErrNotFound
+		}
+		return apperr.Wrap(apperr.ErrInternal, err)
+	}
+	if tx.UserID != userID || tx.Type != model.TxTypeWithdraw {
+		return apperr.ErrNotFound
+	}
+	if tx.ReviewStatus != model.ReviewStatusPendingReview {
+		return apperr.ErrWithdrawNotCancellable
+	}
+
+	wallet, err := s.walletRepo.FindByUserIDAndCurrency(ctx, userID, tx.Currency)
+	if err != nil {
+		return apperr.Wrap(apperr.ErrInternal, err)
+	}
+	origAvailable, origFrozen := wallet.Available, wallet.Frozen
+	newAvailable := wallet.Available.Add(tx.Amount)
+	newFrozen := wallet.Frozen.Sub(tx.Amount)
+	if newFrozen.LessThan(decimal.Zero) {
+		newFrozen = decimal.Zero
+	}
+	if err := s.walletRepo.UpdateBalance(ctx, wallet.ID, newAvailable, wallet.InOperation, newFrozen); err != nil {
+		return apperr.Wrap(apperr.ErrInternal, err)
+	}
+
+	if err := s.txRepo.UpdateReview(ctx, tx.ID, map[string]any{
+		"review_status": model.ReviewStatusCancelled,
+		"status":        model.TxStatusCancelled,
+	}); err != nil {
+		// Best-effort revert of refund on persistence failure.
+		_ = s.walletRepo.UpdateBalance(ctx, wallet.ID, origAvailable, wallet.InOperation, origFrozen)
+		return apperr.Wrap(apperr.ErrInternal, err)
+	}
+
+	s.logger.Info("withdrawal cancelled by user",
+		slog.String("user_id", userID),
+		slog.String("tx_id", txID),
+		slog.String("amount", tx.Amount.String()),
+	)
+	return nil
 }
 
 func (s *walletService) AddWhitelistAddress(ctx context.Context, userID string, req dto.AddWhitelistAddressRequest) (*dto.WhitelistAddressResponse, error) {
