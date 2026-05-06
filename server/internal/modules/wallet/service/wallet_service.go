@@ -180,7 +180,6 @@ func (s *walletService) Withdraw(ctx context.Context, userID string, req dto.Wit
 		}
 		return nil, apperr.Wrap(apperr.ErrInternal, err)
 	}
-
 	if whiteAddr.InCooldown() {
 		return nil, apperr.ErrAddressCooldown
 	}
@@ -192,7 +191,6 @@ func (s *walletService) Withdraw(ctx context.Context, userID string, req dto.Wit
 		}
 		return nil, apperr.Wrap(apperr.ErrInternal, err)
 	}
-
 	if wallet.Available.LessThan(amount) {
 		return nil, apperr.ErrInsufficientFunds
 	}
@@ -204,70 +202,32 @@ func (s *walletService) Withdraw(ctx context.Context, userID string, req dto.Wit
 	}
 
 	tx := &model.Transaction{
-		UserID:   userID,
-		Type:     model.TxTypeWithdraw,
-		Currency: req.Currency,
-		Network:  req.Network,
-		Amount:   amount,
-		Address:  req.Address,
-		Status:   model.TxStatusPending,
+		UserID:       userID,
+		Type:         model.TxTypeWithdraw,
+		Currency:     req.Currency,
+		Network:      req.Network,
+		Amount:       amount,
+		Address:      req.Address,
+		Status:       model.TxStatusPending,
+		ReviewStatus: model.ReviewStatusPendingReview,
 	}
 	if err := s.txRepo.Create(ctx, tx); err != nil {
+		// Best-effort rollback of freeze on persistence failure.
+		_ = s.walletRepo.UpdateBalance(ctx, wallet.ID, wallet.Available, wallet.InOperation, wallet.Frozen)
 		return nil, apperr.Wrap(apperr.ErrInternal, err)
 	}
 
-	s.logger.Info("calling cobo withdraw",
-		slog.String("currency", req.Currency),
-		slog.String("network", req.Network),
-		slog.String("address", req.Address),
-		slog.String("amount", amount.String()),
-		slog.String("request_id", tx.ID),
-	)
-
-	result, err := s.provider.Withdraw(ctx, cobo.WithdrawReq{
-		Currency:  req.Currency,
-		Network:   req.Network,
-		Address:   req.Address,
-		Amount:    amount,
-		RequestID: tx.ID,
-	})
-	if err != nil {
-		s.logger.Error("cobo withdraw failed",
-			slog.String("error", err.Error()),
-			slog.String("tx_id", tx.ID),
-		)
-		s.txRepo.UpdateStatus(ctx, tx.ID, model.TxStatusFailed, "")
-		s.walletRepo.UpdateBalance(ctx, wallet.ID, wallet.Available, wallet.InOperation, wallet.Frozen)
-		return nil, apperr.Wrap(apperr.ErrInternal, fmt.Errorf("withdraw: %w", err))
-	}
-
-	// 保存 Cobo 返回的 external_id 并更新状态
-	tx.ExternalID = result.ExternalID
-	s.txRepo.UpdateStatus(ctx, tx.ID, model.TxStatusProcessing, "")
-	// 单独更新 external_id
-	s.txRepo.UpdateExternalID(ctx, tx.ID, result.ExternalID)
-
-	s.eventBus.Publish(ctx, events.Event{
-		Type: events.WithdrawRequested,
-		Payload: map[string]string{
-			"user_id":        userID,
-			"transaction_id": tx.ID,
-			"external_id":    result.ExternalID,
-		},
-	})
-
-	s.logger.Info("withdrawal initiated",
+	s.logger.Info("withdrawal queued for review",
 		slog.String("user_id", userID),
 		slog.String("tx_id", tx.ID),
-		slog.String("external_id", result.ExternalID),
 		slog.String("currency", req.Currency),
 		slog.String("amount", amount.String()),
 	)
 
 	return &dto.WithdrawResponse{
 		TransactionID: tx.ID,
-		Status:        "processing",
-		Message:       "withdrawal request submitted",
+		Status:        model.ReviewStatusPendingReview,
+		Message:       "withdrawal request queued for admin review",
 	}, nil
 }
 
