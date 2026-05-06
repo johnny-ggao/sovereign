@@ -159,22 +159,46 @@ export default function WalletPage() {
                         <p className={`text-sm font-semibold ${tx.type === "deposit" ? "text-success" : "text-destructive"}`}>
                           {tx.type === "deposit" ? "+" : "-"}{formatCurrency(tx.amount)} USDT
                         </p>
-                        {tx.type === "withdraw" && tx.review_status ? (
-                          <div className="flex flex-col items-end gap-0.5">
-                            <Badge variant="outline" className={`text-[10px] ${tx.review_status === "submitted" ? "border-success/30 text-success" : tx.review_status === "rejected" || tx.review_status === "cancelled" ? "border-destructive/30 text-destructive" : "border-muted-foreground/30"}`}>
-                              {t(`wallet.reviewStatus_${tx.review_status}`)}
+                        {(() => {
+                          // For withdrawals, on-chain terminal states (confirmed/failed) take
+                          // priority over review_status, since review_status stays "submitted"
+                          // even after Cobo confirms or rejects.
+                          if (tx.type === "withdraw") {
+                            if (tx.status === "confirmed") {
+                              return (
+                                <Badge variant="outline" className="text-[10px] border-success/30 text-success">
+                                  {t("wallet.statusConfirmed")}
+                                </Badge>
+                              )
+                            }
+                            if (tx.status === "failed") {
+                              return (
+                                <Badge variant="outline" className="text-[10px] border-destructive/30 text-destructive">
+                                  {t("wallet.reviewStatus_rejected")}
+                                </Badge>
+                              )
+                            }
+                            if (tx.review_status) {
+                              return (
+                                <div className="flex flex-col items-end gap-0.5">
+                                  <Badge variant="outline" className={`text-[10px] ${tx.review_status === "submitted" ? "border-success/30 text-success" : tx.review_status === "rejected" || tx.review_status === "cancelled" ? "border-destructive/30 text-destructive" : "border-muted-foreground/30"}`}>
+                                    {t(`wallet.reviewStatus_${tx.review_status}`)}
+                                  </Badge>
+                                  {tx.review_status === "rejected" && tx.reject_reason ? (
+                                    <span className="text-[10px] text-muted-foreground" title={tx.reject_reason}>
+                                      {t("wallet.rejectReason")}: {tx.reject_reason}
+                                    </span>
+                                  ) : null}
+                                </div>
+                              )
+                            }
+                          }
+                          return (
+                            <Badge variant="outline" className={`text-[10px] ${tx.status === "confirmed" ? "border-success/30 text-success" : "border-muted-foreground/30"}`}>
+                              {tx.status}
                             </Badge>
-                            {tx.review_status === "rejected" && tx.reject_reason ? (
-                              <span className="text-[10px] text-muted-foreground" title={tx.reject_reason}>
-                                {t("wallet.rejectReason")}: {tx.reject_reason}
-                              </span>
-                            ) : null}
-                          </div>
-                        ) : (
-                          <Badge variant="outline" className={`text-[10px] ${tx.status === "confirmed" ? "border-success/30 text-success" : "border-muted-foreground/30"}`}>
-                            {tx.status}
-                          </Badge>
-                        )}
+                          )
+                        })()}
                       </div>
                       {tx.type === "withdraw" && tx.review_status === "pending_review" ? (
                         <button

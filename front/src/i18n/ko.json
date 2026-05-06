@@ -172,7 +172,8 @@
     "cancelWithdraw": "신청 취소",
     "withdrawSubmittedQueued": "출금 신청이 제출되었습니다. 관리자 심사를 기다리는 중입니다.",
     "rejectReason": "거절 사유",
-    "cancelConfirm": "이 출금 신청을 취소하시겠습니까? 금액이 사용 가능 잔액으로 환불됩니다."
+    "cancelConfirm": "이 출금 신청을 취소하시겠습니까? 금액이 사용 가능 잔액으로 환불됩니다.",
+    "statusConfirmed": "완료됨"
   },
   "investment": {
     "title": "투자 관리",
