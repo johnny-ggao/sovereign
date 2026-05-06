@@ -18,6 +18,7 @@ import (
 	"github.com/sovereign-fund/sovereign/internal/modules/settlement"
 	"github.com/sovereign-fund/sovereign/internal/modules/tradelog"
 	"github.com/sovereign-fund/sovereign/internal/modules/wallet"
+	walletrepo "github.com/sovereign-fund/sovereign/internal/modules/wallet/repository"
 	"github.com/sovereign-fund/sovereign/internal/worker"
 	"github.com/sovereign-fund/sovereign/internal/shared/database"
 	"github.com/sovereign-fund/sovereign/internal/shared/events"
@@ -119,7 +120,9 @@ func New(cfg *config.Config) (*App, error) {
 		return nil, fmt.Errorf("init notification module: %w", err)
 	}
 
-	adminMod := admin.NewModule(db, cfg.Admin, log)
+	walletRepoForAdmin := walletrepo.NewWalletRepository(db)
+	txRepoForAdmin := walletrepo.NewTransactionRepository(db)
+	adminMod := admin.NewModule(db, cfg.Admin, log, walletRepoForAdmin, txRepoForAdmin, walletProvider, bus)
 	authMod := auth.NewModule(db, rdb, jwtMgr, bus, cfg, notifMod.Service, log)
 
 	bus.Subscribe(events.DepositConfirmed, notifMod.Service.HandleDepositConfirmed)

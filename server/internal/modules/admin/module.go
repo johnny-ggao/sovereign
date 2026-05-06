@@ -7,23 +7,35 @@ import (
 	"github.com/sovereign-fund/sovereign/internal/modules/admin/handler"
 	"github.com/sovereign-fund/sovereign/internal/modules/admin/repository"
 	"github.com/sovereign-fund/sovereign/internal/modules/admin/service"
+	walletrepo "github.com/sovereign-fund/sovereign/internal/modules/wallet/repository"
+	"github.com/sovereign-fund/sovereign/internal/shared/events"
+	"github.com/sovereign-fund/sovereign/pkg/cobo"
 	"gorm.io/gorm"
 )
 
 type Module struct {
-	AuthHandler        *handler.AuthHandler
-	AdminUserHandler   *handler.AdminUserHandler
-	AuditHandler       *handler.AuditHandler
-	UserHandler        *handler.UserHandler
-	DashboardHandler   *handler.DashboardHandler
-	TradeHandler       *handler.TradeHandler
-	TransactionHandler *handler.TransactionHandler
-	AuditService       service.AuditService
-	AdminRepo          repository.AdminRepository
-	JWTSecret          string
+	AuthHandler           *handler.AuthHandler
+	AdminUserHandler      *handler.AdminUserHandler
+	AuditHandler          *handler.AuditHandler
+	UserHandler           *handler.UserHandler
+	DashboardHandler      *handler.DashboardHandler
+	TradeHandler          *handler.TradeHandler
+	TransactionHandler    *handler.TransactionHandler
+	WithdrawReviewHandler *handler.WithdrawReviewHandler
+	AuditService          service.AuditService
+	AdminRepo             repository.AdminRepository
+	JWTSecret             string
 }
 
-func NewModule(db *gorm.DB, cfg config.AdminConfig, logger *slog.Logger) *Module {
+func NewModule(
+	db *gorm.DB,
+	cfg config.AdminConfig,
+	logger *slog.Logger,
+	walletRepo walletrepo.WalletRepository,
+	txRepo walletrepo.TransactionRepository,
+	coboProvider cobo.WalletProvider,
+	bus events.Bus,
+) *Module {
 	repo := repository.NewAdminRepository(db)
 
 	authSvc := service.NewAuthService(repo, cfg.JWTSecret, cfg.JWTExpiry, logger)
@@ -34,16 +46,22 @@ func NewModule(db *gorm.DB, cfg config.AdminConfig, logger *slog.Logger) *Module
 	tradeSvc := service.NewTradeService(db)
 	transactionSvc := service.NewTransactionService(db)
 
+	withdrawReviewSvc := service.NewWithdrawReviewService(
+		service.NewPGReviewQuerier(db),
+		walletRepo, txRepo, coboProvider, bus, logger,
+	)
+
 	return &Module{
-		AuthHandler:        handler.NewAuthHandler(authSvc),
-		AdminUserHandler:   handler.NewAdminUserHandler(adminUserSvc, auditSvc),
-		AuditHandler:       handler.NewAuditHandler(auditSvc),
-		UserHandler:        handler.NewUserHandler(userSvc, auditSvc),
-		DashboardHandler:   handler.NewDashboardHandler(dashboardSvc),
-		TradeHandler:       handler.NewTradeHandler(tradeSvc, auditSvc),
-		TransactionHandler: handler.NewTransactionHandler(transactionSvc),
-		AuditService:       auditSvc,
-		AdminRepo:          repo,
-		JWTSecret:          cfg.JWTSecret,
+		AuthHandler:           handler.NewAuthHandler(authSvc),
+		AdminUserHandler:      handler.NewAdminUserHandler(adminUserSvc, auditSvc),
+		AuditHandler:          handler.NewAuditHandler(auditSvc),
+		UserHandler:           handler.NewUserHandler(userSvc, auditSvc),
+		DashboardHandler:      handler.NewDashboardHandler(dashboardSvc),
+		TradeHandler:          handler.NewTradeHandler(tradeSvc, auditSvc),
+		TransactionHandler:    handler.NewTransactionHandler(transactionSvc),
+		WithdrawReviewHandler: handler.NewWithdrawReviewHandler(withdrawReviewSvc, auditSvc),
+		AuditService:          auditSvc,
+		AdminRepo:             repo,
+		JWTSecret:             cfg.JWTSecret,
 	}
 }

@@ -75,6 +75,17 @@ func RegisterRoutes(r *gin.RouterGroup, m *Module) {
 		m.TransactionHandler.Stats,
 	)
 
+	// Withdrawal review (admin can approve/reject/retry user withdrawals)
+	withdrawals := protected.Group("/withdrawals",
+		middleware.RequireRole(model.RoleSuperAdmin, model.RoleOperator),
+	)
+	{
+		withdrawals.GET("", m.WithdrawReviewHandler.List)
+		withdrawals.POST("/:id/approve", m.WithdrawReviewHandler.Approve)
+		withdrawals.POST("/:id/reject", m.WithdrawReviewHandler.Reject)
+		withdrawals.POST("/:id/retry", m.WithdrawReviewHandler.Retry)
+	}
+
 	// User management
 	users := protected.Group("/users")
 	{
