@@ -128,6 +128,7 @@ func New(cfg *config.Config) (*App, error) {
 	bus.Subscribe(events.DepositConfirmed, notifMod.Service.HandleDepositConfirmed)
 	bus.Subscribe(events.WithdrawCompleted, notifMod.Service.HandleWithdrawCompleted)
 	bus.Subscribe(events.WithdrawFailed, notifMod.Service.HandleWithdrawFailed)
+	bus.Subscribe(events.WithdrawRejected, notifMod.Service.HandleWithdrawRejected)
 	bus.Subscribe(events.SettlementCreated, notifMod.Service.HandleSettlementCreated)
 
 	return &App{

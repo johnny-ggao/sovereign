@@ -4,6 +4,7 @@ import (
 	"context"
 	"log/slog"
 	"os"
+	"strings"
 	"testing"
 
 	authmodel "github.com/sovereign-fund/sovereign/internal/modules/auth/model"
@@ -159,6 +160,97 @@ func TestHandleDepositConfirmedSkipsWhenDisabled(t *testing.T) {
 
 	if err := svc.HandleDepositConfirmed(context.Background(), evt); err != nil {
 		t.Fatalf("HandleDepositConfirmed returned error: %v", err)
+	}
+
+	if len(mock.Sent) != 0 {
+		t.Fatalf("expected 0 emails sent, got %d", len(mock.Sent))
+	}
+}
+
+func TestHandleWithdrawRejectedSendsEmailWithReason(t *testing.T) {
+	mock := &provider.MockProvider{}
+	userRepo := &stubUserRepo{
+		user: &authmodel.User{
+			ID:       "u4",
+			Email:    "carol@example.com",
+			Language: "en",
+		},
+	}
+	settingsRepo := &stubSettingsRepo{
+		pref: &settingsmodel.NotificationPref{
+			UserID:        "u4",
+			EmailWithdraw: true,
+		},
+	}
+
+	svc := newTestService(t, mock, userRepo, settingsRepo)
+
+	const rejectReason = "AML risk threshold exceeded"
+	evt := events.Event{
+		Type: events.WithdrawRejected,
+		Payload: map[string]string{
+			"user_id":        "u4",
+			"transaction_id": "tx-rej-1",
+			"amount":         "750",
+			"currency":       "USDT",
+			"reason":         rejectReason,
+		},
+	}
+
+	if err := svc.HandleWithdrawRejected(context.Background(), evt); err != nil {
+		t.Fatalf("HandleWithdrawRejected returned error: %v", err)
+	}
+
+	if len(mock.Sent) != 1 {
+		t.Fatalf("expected 1 email sent, got %d", len(mock.Sent))
+	}
+
+	sent := mock.Sent[0]
+	if sent.To != "carol@example.com" {
+		t.Errorf("expected To=carol@example.com, got %s", sent.To)
+	}
+	if sent.Subject == "" {
+		t.Error("expected non-empty subject")
+	}
+	if sent.HTML == "" {
+		t.Error("expected non-empty HTML body")
+	}
+	if !strings.Contains(sent.HTML, rejectReason) {
+		t.Errorf("expected HTML body to contain reject reason %q, got: %s", rejectReason, sent.HTML)
+	}
+}
+
+func TestHandleWithdrawRejectedSkipsWhenDisabled(t *testing.T) {
+	mock := &provider.MockProvider{}
+	userRepo := &stubUserRepo{
+		user: &authmodel.User{
+			ID:       "u5",
+			Email:    "dave@example.com",
+			Language: "en",
+		},
+	}
+	settingsRepo := &stubSettingsRepo{
+		pref: &settingsmodel.NotificationPref{
+			UserID:        "u5",
+			EmailWithdraw: false,
+		},
+	}
+
+	svc := newTestService(t, mock, userRepo, settingsRepo)
+
+	evt := events.Event{
+		Type: events.WithdrawRejected,
+		Payload: map[string]string{
+			"user_id":        "u5",
+			"transaction_id": "tx-rej-2",
+			"amount":         "100",
+			"currency":       "USDT",
+			"reason":         "test",
+		},
+	}
+
+	if err := svc.HandleWithdrawRejected(context.Background(), evt); err != nil {
+		t.Fatalf("HandleWithdrawRejected returned error: %v", err)
 	}
 
 	if len(mock.Sent) != 0 {

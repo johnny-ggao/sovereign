@@ -19,6 +19,7 @@ type NotificationService interface {
 	HandleDepositConfirmed(ctx context.Context, event events.Event) error
 	HandleWithdrawCompleted(ctx context.Context, event events.Event) error
 	HandleWithdrawFailed(ctx context.Context, event events.Event) error
+	HandleWithdrawRejected(ctx context.Context, event events.Event) error
 	HandleSettlementCreated(ctx context.Context, event events.Event) error
 	SendOTP(ctx context.Context, email, lang, templateName, code, expiresIn string) error
 }
@@ -86,6 +87,18 @@ func (s *notificationService) HandleWithdrawCompleted(ctx context.Context, event
 
 func (s *notificationService) HandleWithdrawFailed(ctx context.Context, event events.Event) error {
 	return s.sendIfEnabled(ctx, event, "withdraw_failed", func(pref *settingsmodel.NotificationPref) bool {
+		return pref.EmailWithdraw
+	}, func(payload map[string]string) map[string]string {
+		return map[string]string{
+			"Amount":   payload["amount"],
+			"Currency": payload["currency"],
+			"Reason":   payload["reason"],
+		}
+	})
+}
+
+func (s *notificationService) HandleWithdrawRejected(ctx context.Context, event events.Event) error {
+	return s.sendIfEnabled(ctx, event, "withdraw_rejected", func(pref *settingsmodel.NotificationPref) bool {
 		return pref.EmailWithdraw
 	}, func(payload map[string]string) map[string]string {
 		return map[string]string{
