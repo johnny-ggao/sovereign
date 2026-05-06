@@ -195,6 +195,7 @@ func (s *walletService) Withdraw(ctx context.Context, userID string, req dto.Wit
 		return nil, apperr.ErrInsufficientFunds
 	}
 
+	origAvailable, origFrozen := wallet.Available, wallet.Frozen
 	newAvailable := wallet.Available.Sub(amount)
 	newFrozen := wallet.Frozen.Add(amount)
 	if err := s.walletRepo.UpdateBalance(ctx, wallet.ID, newAvailable, wallet.InOperation, newFrozen); err != nil {
@@ -213,7 +214,7 @@ func (s *walletService) Withdraw(ctx context.Context, userID string, req dto.Wit
 	}
 	if err := s.txRepo.Create(ctx, tx); err != nil {
 		// Best-effort rollback of freeze on persistence failure.
-		_ = s.walletRepo.UpdateBalance(ctx, wallet.ID, wallet.Available, wallet.InOperation, wallet.Frozen)
+		_ = s.walletRepo.UpdateBalance(ctx, wallet.ID, origAvailable, wallet.InOperation, origFrozen)
 		return nil, apperr.Wrap(apperr.ErrInternal, err)
 	}
 
