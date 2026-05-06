@@ -21,6 +21,10 @@ var (
 	ErrAddressNotWhitelisted = New(http.StatusForbidden, "WALLET_ADDRESS_NOT_WHITELISTED", "address not in whitelist")
 	ErrWithdrawLimitExceeded = New(http.StatusUnprocessableEntity, "WALLET_WITHDRAW_LIMIT", "withdrawal limit exceeded")
 	ErrWithdrawNotCancellable = New(http.StatusUnprocessableEntity, "WITHDRAW_NOT_CANCELLABLE", "withdrawal cannot be cancelled in current state")
+	ErrWithdrawNotApprovable = New(http.StatusUnprocessableEntity, "WITHDRAW_NOT_APPROVABLE", "withdrawal cannot be approved in current state")
+	ErrWithdrawNotRetriable  = New(http.StatusUnprocessableEntity, "WITHDRAW_NOT_RETRIABLE", "withdrawal cannot be retried in current state")
+	ErrWithdrawNotRejectable = New(http.StatusUnprocessableEntity, "WITHDRAW_NOT_REJECTABLE", "withdrawal cannot be rejected in current state")
+	ErrCoboSubmitFailed      = New(http.StatusBadGateway, "COBO_SUBMIT_FAILED", "submission to cobo failed; ticket marked submit_failed")
 )
 
 // Investment

@@ -10,6 +10,7 @@ const (
 	WithdrawRequested  = "wallet.withdraw.requested"
 	WithdrawCompleted  = "wallet.withdraw.completed"
 	WithdrawFailed     = "wallet.withdraw.failed"
+	WithdrawRejected   = "wallet.withdraw.rejected"
 
 	InvestmentCreated  = "investment.created"
 	InvestmentRedeemed = "investment.redeemed"

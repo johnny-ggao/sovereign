@@ -116,10 +116,85 @@ func (s *withdrawReviewService) List(ctx context.Context, q dto.WithdrawReviewLi
 	return items, total, nil
 }
 
-// Stubs filled in Tasks 8-10.
 func (s *withdrawReviewService) Approve(ctx context.Context, txID, adminID string) error {
-	return errors.New("not implemented")
+	tx, err := s.txR.FindByID(ctx, txID)
+	if err != nil {
+		if errors.Is(err, gorm.ErrRecordNotFound) {
+			return apperr.ErrNotFound
+		}
+		return apperr.Wrap(apperr.ErrInternal, err)
+	}
+	if tx.Type != walletmodel.TxTypeWithdraw || tx.ReviewStatus != walletmodel.ReviewStatusPendingReview {
+		return apperr.ErrWithdrawNotApprovable
+	}
+	return s.submitToCobo(ctx, tx, adminID)
 }
+
+// submitToCobo is shared by Approve and Retry. On Cobo success it transitions
+// the ticket to submitted/processing. On Cobo failure it transitions to
+// submit_failed WITHOUT touching wallet balances — money stays frozen so the
+// admin can retry.
+func (s *withdrawReviewService) submitToCobo(ctx context.Context, tx *walletmodel.Transaction, adminID string) error {
+	now := time.Now()
+	resp, coboErr := s.provider.Withdraw(ctx, cobo.WithdrawReq{
+		Currency:  tx.Currency,
+		Network:   tx.Network,
+		Address:   tx.Address,
+		Amount:    tx.Amount,
+		RequestID: tx.ID,
+	})
+
+	if coboErr != nil {
+		s.logger.Error("cobo withdraw failed",
+			slog.String("error", coboErr.Error()),
+			slog.String("tx_id", tx.ID),
+			slog.String("admin_id", adminID),
+		)
+		fields := map[string]any{
+			"review_status":     walletmodel.ReviewStatusSubmitFailed,
+			"submit_attempts":   tx.SubmitAttempts + 1,
+			"last_submit_error": coboErr.Error(),
+			"last_submit_at":    now,
+			"reviewed_by":       adminID,
+			"reviewed_at":       now,
+		}
+		if upErr := s.txR.UpdateReview(ctx, tx.ID, fields); upErr != nil {
+			return apperr.Wrap(apperr.ErrInternal, fmt.Errorf("persist submit_failed: %w (cobo err: %v)", upErr, coboErr))
+		}
+		return apperr.Wrap(apperr.ErrCoboSubmitFailed, coboErr)
+	}
+
+	fields := map[string]any{
+		"review_status":   walletmodel.ReviewStatusSubmitted,
+		"status":          walletmodel.TxStatusProcessing,
+		"external_id":     resp.ExternalID,
+		"submit_attempts": tx.SubmitAttempts + 1,
+		"last_submit_at":  now,
+		"reviewed_by":     adminID,
+		"reviewed_at":     now,
+	}
+	if err := s.txR.UpdateReview(ctx, tx.ID, fields); err != nil {
+		return apperr.Wrap(apperr.ErrInternal, err)
+	}
+
+	s.bus.Publish(ctx, events.Event{
+		Type: events.WithdrawRequested,
+		Payload: map[string]string{
+			"user_id":        tx.UserID,
+			"transaction_id": tx.ID,
+			"external_id":    resp.ExternalID,
+		},
+	})
+
+	s.logger.Info("withdrawal submitted to cobo",
+		slog.String("tx_id", tx.ID),
+		slog.String("external_id", resp.ExternalID),
+		slog.String("admin_id", adminID),
+	)
+	return nil
+}
+
+// Stubs filled in Tasks 9-10.
 func (s *withdrawReviewService) Reject(ctx context.Context, txID, adminID, reason string) error {
 	return errors.New("not implemented")
 }
@@ -130,8 +205,3 @@ func (s *withdrawReviewService) Retry(ctx context.Context, txID, adminID string)
 // Compile-time assertions: production repos satisfy our narrow interfaces.
 var _ walletReader = (walletrepo.WalletRepository)(nil)
 var _ txWriter = (walletrepo.TransactionRepository)(nil)
-
-// Keep imports live until later tasks consume them.
-var _ = fmt.Sprintf
-var _ = apperr.ErrInternal
-var _ = (*gorm.DB)(nil)
