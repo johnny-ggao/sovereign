@@ -194,10 +194,65 @@ func (s *withdrawReviewService) submitToCobo(ctx context.Context, tx *walletmode
 	return nil
 }
 
-// Stubs filled in Tasks 9-10.
 func (s *withdrawReviewService) Reject(ctx context.Context, txID, adminID, reason string) error {
-	return errors.New("not implemented")
+	tx, err := s.txR.FindByID(ctx, txID)
+	if err != nil {
+		if errors.Is(err, gorm.ErrRecordNotFound) {
+			return apperr.ErrNotFound
+		}
+		return apperr.Wrap(apperr.ErrInternal, err)
+	}
+	if tx.Type != walletmodel.TxTypeWithdraw {
+		return apperr.ErrWithdrawNotRejectable
+	}
+	switch tx.ReviewStatus {
+	case walletmodel.ReviewStatusPendingReview, walletmodel.ReviewStatusSubmitFailed:
+		// allowed
+	default:
+		return apperr.ErrWithdrawNotRejectable
+	}
+
+	wallet, err := s.walletR.FindByUserIDAndCurrency(ctx, tx.UserID, tx.Currency)
+	if err != nil {
+		return apperr.Wrap(apperr.ErrInternal, err)
+	}
+	origAvailable, origFrozen := wallet.Available, wallet.Frozen
+	newAvailable := wallet.Available.Add(tx.Amount)
+	newFrozen := wallet.Frozen.Sub(tx.Amount)
+	if newFrozen.LessThan(decimal.Zero) {
+		newFrozen = decimal.Zero
+	}
+	if err := s.walletR.UpdateBalance(ctx, wallet.ID, newAvailable, wallet.InOperation, newFrozen); err != nil {
+		return apperr.Wrap(apperr.ErrInternal, err)
+	}
+
+	now := time.Now()
+	if err := s.txR.UpdateReview(ctx, tx.ID, map[string]any{
+		"review_status": walletmodel.ReviewStatusRejected,
+		"status":        walletmodel.TxStatusCancelled,
+		"reject_reason": reason,
+		"reviewed_by":   adminID,
+		"reviewed_at":   now,
+	}); err != nil {
+		// Best-effort revert of refund if persistence fails.
+		_ = s.walletR.UpdateBalance(ctx, wallet.ID, origAvailable, wallet.InOperation, origFrozen)
+		return apperr.Wrap(apperr.ErrInternal, err)
+	}
+
+	s.bus.Publish(ctx, events.Event{
+		Type: events.WithdrawRejected,
+		Payload: map[string]string{
+			"user_id":        tx.UserID,
+			"transaction_id": tx.ID,
+			"amount":         tx.Amount.String(),
+			"currency":       tx.Currency,
+			"reason":         reason,
+		},
+	})
+	return nil
 }
+
+// Stub filled in Task 10.
 func (s *withdrawReviewService) Retry(ctx context.Context, txID, adminID string) error {
 	return errors.New("not implemented")
 }

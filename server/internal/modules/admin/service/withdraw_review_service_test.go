@@ -273,3 +273,97 @@ func TestApprove_RejectsNonPendingReview(t *testing.T) {
 		t.Errorf("error code = %v, want WITHDRAW_NOT_APPROVABLE", ae)
 	}
 }
+
+func TestReject_RefundsAndPersistsReason(t *testing.T) {
+	ctx := context.Background()
+	tx := &walletmodel.Transaction{
+		ID: "tx1", UserID: "u1", Type: "withdraw",
+		Currency: "USDT", Amount: decimal.NewFromInt(50),
+		Status: "pending", ReviewStatus: "pending_review",
+	}
+	txR := &stubTxRepo{byID: map[string]*walletmodel.Transaction{"tx1": tx}}
+	wr := &stubWalletRepo{wallet: &walletmodel.Wallet{
+		ID: "w1", UserID: "u1", Currency: "USDT",
+		Available: decimal.NewFromInt(50), Frozen: decimal.NewFromInt(50),
+	}}
+	bus := &spyBus{}
+	svc := NewWithdrawReviewService(&stubReviewQuery{}, wr, txR, &fakeProvider{}, bus, newTestLogger())
+
+	if err := svc.Reject(ctx, "tx1", "admin-1", "address mismatch"); err != nil {
+		t.Fatalf("Reject error = %v", err)
+	}
+	if !wr.wallet.Available.Equal(decimal.NewFromInt(100)) {
+		t.Errorf("available = %s, want 100 (refunded)", wr.wallet.Available.String())
+	}
+	if !wr.wallet.Frozen.Equal(decimal.Zero) {
+		t.Errorf("frozen = %s, want 0", wr.wallet.Frozen.String())
+	}
+
+	upd := txR.updates["tx1"]
+	if upd["review_status"] != "rejected" {
+		t.Errorf("review_status = %v, want rejected", upd["review_status"])
+	}
+	if upd["status"] != "cancelled" {
+		t.Errorf("status = %v, want cancelled", upd["status"])
+	}
+	if upd["reject_reason"] != "address mismatch" {
+		t.Errorf("reject_reason = %v, want 'address mismatch'", upd["reject_reason"])
+	}
+	if upd["reviewed_by"] != "admin-1" {
+		t.Errorf("reviewed_by = %v, want admin-1", upd["reviewed_by"])
+	}
+
+	if len(bus.events) != 1 {
+		t.Fatalf("bus.events length = %d, want 1", len(bus.events))
+	}
+	if bus.events[0].Type != events.WithdrawRejected {
+		t.Errorf("event type = %s, want %s", bus.events[0].Type, events.WithdrawRejected)
+	}
+	payload, ok := bus.events[0].Payload.(map[string]string)
+	if !ok {
+		t.Fatalf("event payload type = %T, want map[string]string", bus.events[0].Payload)
+	}
+	if payload["reason"] != "address mismatch" {
+		t.Errorf("event reason = %s, want 'address mismatch'", payload["reason"])
+	}
+}
+
+func TestReject_AllowedFromSubmitFailed(t *testing.T) {
+	ctx := context.Background()
+	tx := &walletmodel.Transaction{
+		ID: "tx1", UserID: "u1", Type: "withdraw",
+		Currency: "USDT", Amount: decimal.NewFromInt(50),
+		Status: "pending", ReviewStatus: "submit_failed",
+	}
+	txR := &stubTxRepo{byID: map[string]*walletmodel.Transaction{"tx1": tx}}
+	wr := &stubWalletRepo{wallet: &walletmodel.Wallet{
+		ID: "w1", UserID: "u1", Currency: "USDT",
+		Available: decimal.NewFromInt(0), Frozen: decimal.NewFromInt(50),
+	}}
+	svc := NewWithdrawReviewService(&stubReviewQuery{}, wr, txR, &fakeProvider{}, &spyBus{}, newTestLogger())
+
+	if err := svc.Reject(ctx, "tx1", "admin-1", "manual cleanup"); err != nil {
+		t.Fatalf("Reject error = %v", err)
+	}
+	if !wr.wallet.Available.Equal(decimal.NewFromInt(50)) {
+		t.Errorf("available = %s, want 50", wr.wallet.Available.String())
+	}
+	if !wr.wallet.Frozen.Equal(decimal.Zero) {
+		t.Errorf("frozen = %s, want 0", wr.wallet.Frozen.String())
+	}
+}
+
+func TestReject_RejectsTerminalState(t *testing.T) {
+	ctx := context.Background()
+	tx := &walletmodel.Transaction{
+		ID: "tx1", UserID: "u1", Type: "withdraw",
+		ReviewStatus: "submitted",
+	}
+	txR := &stubTxRepo{byID: map[string]*walletmodel.Transaction{"tx1": tx}}
+	svc := NewWithdrawReviewService(&stubReviewQuery{}, &stubWalletRepo{}, txR, &fakeProvider{}, &spyBus{}, newTestLogger())
+	err := svc.Reject(ctx, "tx1", "admin-1", "x")
+	var ae *apperr.AppError
+	if !errors.As(err, &ae) || ae.Code != "WITHDRAW_NOT_REJECTABLE" {
+		t.Errorf("error = %v, want WITHDRAW_NOT_REJECTABLE", err)
+	}
+}
