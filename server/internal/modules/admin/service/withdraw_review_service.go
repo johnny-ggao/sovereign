@@ -252,9 +252,18 @@ func (s *withdrawReviewService) Reject(ctx context.Context, txID, adminID, reaso
 	return nil
 }
 
-// Stub filled in Task 10.
 func (s *withdrawReviewService) Retry(ctx context.Context, txID, adminID string) error {
-	return errors.New("not implemented")
+	tx, err := s.txR.FindByID(ctx, txID)
+	if err != nil {
+		if errors.Is(err, gorm.ErrRecordNotFound) {
+			return apperr.ErrNotFound
+		}
+		return apperr.Wrap(apperr.ErrInternal, err)
+	}
+	if tx.Type != walletmodel.TxTypeWithdraw || tx.ReviewStatus != walletmodel.ReviewStatusSubmitFailed {
+		return apperr.ErrWithdrawNotRetriable
+	}
+	return s.submitToCobo(ctx, tx, adminID)
 }
 
 // Compile-time assertions: production repos satisfy our narrow interfaces.

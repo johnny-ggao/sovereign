@@ -367,3 +367,54 @@ func TestReject_RejectsTerminalState(t *testing.T) {
 		t.Errorf("error = %v, want WITHDRAW_NOT_REJECTABLE", err)
 	}
 }
+
+func TestRetry_FromSubmitFailed_Success(t *testing.T) {
+	ctx := context.Background()
+	tx := &walletmodel.Transaction{
+		ID: "tx1", UserID: "u1", Type: "withdraw",
+		Currency: "USDT", Network: "TRC20", Address: "Tabc",
+		Amount: decimal.NewFromInt(50),
+		Status: "pending", ReviewStatus: "submit_failed",
+		SubmitAttempts: 1,
+	}
+	txR := &stubTxRepo{byID: map[string]*walletmodel.Transaction{"tx1": tx}}
+	wr := &stubWalletRepo{wallet: &walletmodel.Wallet{
+		ID: "w1", UserID: "u1", Currency: "USDT",
+		Frozen: decimal.NewFromInt(50),
+	}}
+	provider := &fakeProvider{resp: &cobo.WithdrawResp{ExternalID: "cobo-2"}}
+	bus := &spyBus{}
+	svc := NewWithdrawReviewService(&stubReviewQuery{}, wr, txR, provider, bus, newTestLogger())
+
+	if err := svc.Retry(ctx, "tx1", "admin-2"); err != nil {
+		t.Fatalf("Retry error = %v", err)
+	}
+	if provider.calls != 1 {
+		t.Errorf("provider.calls = %d, want 1", provider.calls)
+	}
+	upd := txR.updates["tx1"]
+	if upd["review_status"] != "submitted" {
+		t.Errorf("review_status = %v, want submitted", upd["review_status"])
+	}
+	if upd["status"] != "processing" {
+		t.Errorf("status = %v, want processing", upd["status"])
+	}
+	if upd["submit_attempts"] != 2 {
+		t.Errorf("submit_attempts = %v, want 2", upd["submit_attempts"])
+	}
+}
+
+func TestRetry_FromOtherStatus_Forbidden(t *testing.T) {
+	ctx := context.Background()
+	tx := &walletmodel.Transaction{
+		ID: "tx1", Type: "withdraw",
+		ReviewStatus: "pending_review",
+	}
+	txR := &stubTxRepo{byID: map[string]*walletmodel.Transaction{"tx1": tx}}
+	svc := NewWithdrawReviewService(&stubReviewQuery{}, &stubWalletRepo{}, txR, &fakeProvider{}, &spyBus{}, newTestLogger())
+	err := svc.Retry(ctx, "tx1", "admin-2")
+	var ae *apperr.AppError
+	if !errors.As(err, &ae) || ae.Code != "WITHDRAW_NOT_RETRIABLE" {
+		t.Errorf("error = %v, want WITHDRAW_NOT_RETRIABLE", err)
+	}
+}
