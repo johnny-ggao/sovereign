@@ -182,6 +182,44 @@ export async function importTrades(file: File) {
   });
 }
 
+/** Trading Trades (策略交易) */
+export async function getTradingTrades(params: {
+  page?: number;
+  limit?: number;
+  pair?: string;
+  date_from?: string;
+  date_to?: string;
+}) {
+  return request<API.ApiResponse<API.TradeListItem[]>>('/trading-trades', {
+    method: 'GET',
+    params,
+  });
+}
+
+export async function getTradingTradeStats() {
+  return request<API.ApiResponse<API.TradeStats>>('/trading-trades/stats', {
+    method: 'GET',
+  });
+}
+
+export function getTradingTradeTemplateUrl() {
+  return `${adminApiPrefix}/trading-trades/template`;
+}
+
+export async function deleteTradingTrade(id: string) {
+  return request<API.ApiResponse<null>>(`/trading-trades/${id}`, { method: 'DELETE' });
+}
+
+export async function importTradingTrades(file: File) {
+  const formData = new FormData();
+  formData.append('file', file);
+  return request<API.ApiResponse<API.TradeImportResult>>('/trading-trades/import', {
+    method: 'POST',
+    data: formData,
+    requestType: 'form',
+  });
+}
+
 /** Reset 2FA */
 export async function resetUser2FA(id: string) {
   return request<API.ApiResponse<null>>(`/users/${id}/reset-2fa`, {

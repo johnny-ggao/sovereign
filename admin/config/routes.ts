@@ -15,6 +15,7 @@ export default [
   { path: '/users', name: '用户管理', icon: 'team', component: './Users' },
   { path: '/investments', name: '投资管理', icon: 'fund', component: './Investments' },
   { path: '/trades', name: '套利交易', icon: 'swap', component: './Trades' },
+  { path: '/trading-trades', name: '交易策略', icon: 'lineChart', component: './TradingTrades' },
   { path: '/transactions', name: '充提管理', icon: 'transaction', component: './Transactions' },
   { path: '/withdrawals', name: '提现审核', icon: 'audit', component: './Withdrawals', access: 'canReviewWithdrawals' },
   { path: '/users/:id', component: './UserDetail' },
