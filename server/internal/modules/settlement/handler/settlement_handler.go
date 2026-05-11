@@ -20,8 +20,9 @@ func NewSettlementHandler(svc service.SettlementService) *SettlementHandler {
 
 func (h *SettlementHandler) GetAll(c *gin.Context) {
 	userID := c.GetString("user_id")
+	productType := c.Query("product_type") // "", "arbitrage", "trading", "all"
 
-	resp, err := h.settleSvc.GetAll(c.Request.Context(), userID)
+	resp, err := h.settleSvc.GetAll(c.Request.Context(), userID, productType)
 	if err != nil {
 		handleError(c, err)
 		return

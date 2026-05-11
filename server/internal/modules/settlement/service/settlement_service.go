@@ -15,7 +15,7 @@ import (
 )
 
 type SettlementService interface {
-	GetAll(ctx context.Context, userID string) (*dto.SettlementListResponse, error)
+	GetAll(ctx context.Context, userID, productType string) (*dto.SettlementListResponse, error)
 	GetByID(ctx context.Context, userID, id string) (*dto.SettlementResponse, error)
 }
 
@@ -28,8 +28,8 @@ func NewSettlementService(repo repository.SettlementRepository, logger *slog.Log
 	return &settlementService{repo: repo, logger: logger}
 }
 
-func (s *settlementService) GetAll(ctx context.Context, userID string) (*dto.SettlementListResponse, error) {
-	settlements, err := s.repo.FindByUserID(ctx, userID)
+func (s *settlementService) GetAll(ctx context.Context, userID, productType string) (*dto.SettlementListResponse, error) {
+	settlements, err := s.repo.FindByUserIDAndProduct(ctx, userID, productType)
 	if err != nil {
 		return nil, apperr.Wrap(apperr.ErrInternal, err)
 	}
@@ -78,6 +78,7 @@ func toSettlementResponse(s *model.Settlement) dto.SettlementResponse {
 		TradeCount:     s.TradeCount,
 		AvgPremiumPct:  s.AvgPremiumPct,
 		ReportURL:      s.ReportURL,
+		ProductType:    s.ProductType,
 		SettledAt:      s.SettledAt.Format(time.RFC3339),
 	}
 }

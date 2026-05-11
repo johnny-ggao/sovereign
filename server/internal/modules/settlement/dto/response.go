@@ -13,6 +13,7 @@ type SettlementResponse struct {
 	TradeCount     int             `json:"trade_count"`
 	AvgPremiumPct  decimal.Decimal `json:"avg_premium_pct"`
 	ReportURL      string          `json:"report_url"`
+	ProductType    string          `json:"product_type"`
 	SettledAt      string          `json:"settled_at"`
 }
 

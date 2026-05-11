@@ -10,6 +10,7 @@ import (
 type SettlementRepository interface {
 	Create(ctx context.Context, s *model.Settlement) error
 	FindByUserID(ctx context.Context, userID string) ([]model.Settlement, error)
+	FindByUserIDAndProduct(ctx context.Context, userID, productType string) ([]model.Settlement, error)
 	FindByUserIDAndPeriodRange(ctx context.Context, userID, fromPeriod, toPeriod string) ([]model.Settlement, error)
 	FindByID(ctx context.Context, id string) (*model.Settlement, error)
 	FindByInvestmentAndPeriod(ctx context.Context, investmentID, period string) (*model.Settlement, error)
@@ -33,6 +34,16 @@ func (r *settlementRepository) FindByUserID(ctx context.Context, userID string) 
 		Where("user_id = ?", userID).
 		Order("period DESC").
 		Find(&settlements).Error
+	return settlements, err
+}
+
+func (r *settlementRepository) FindByUserIDAndProduct(ctx context.Context, userID, productType string) ([]model.Settlement, error) {
+	q := r.db.WithContext(ctx).Model(&model.Settlement{}).Where("user_id = ?", userID)
+	if productType != "" && productType != "all" {
+		q = q.Where("product_type = ?", productType)
+	}
+	var settlements []model.Settlement
+	err := q.Order("period DESC").Find(&settlements).Error
 	return settlements, err
 }
 
