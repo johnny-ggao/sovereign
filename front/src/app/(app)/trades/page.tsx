@@ -37,7 +37,11 @@ export default function TradesPage() {
   const hasTrading = (tradingData?.summary?.total_trades ?? 0) > 0
   const showTabs = hasArb && hasTrading
 
-  const [tab, setTab] = useState<ProductTab>(currentType)
+  // `manualTab` is set only when the user clicks a tab explicitly; until then
+  // we render whatever the user's current product type is. This avoids the
+  // stale-initial-state bug where `useProfile` resolves AFTER the first render.
+  const [manualTab, setManualTab] = useState<ProductTab | null>(null)
+  const tab: ProductTab = manualTab ?? currentType
   const data = tab === "trading" ? tradingData : arbData
   const isLoading = tab === "trading" ? tradingLoading : arbLoading
 
@@ -83,7 +87,7 @@ export default function TradesPage() {
                 ? "border-b-2 border-primary text-foreground"
                 : "text-muted-foreground"
             }`}
-            onClick={() => setTab(currentType)}
+            onClick={() => setManualTab(currentType)}
           >
             {t("wallet.tabCurrent")}
           </button>
@@ -93,7 +97,7 @@ export default function TradesPage() {
                 ? "border-b-2 border-primary text-foreground"
                 : "text-muted-foreground"
             }`}
-            onClick={() => setTab(currentType === "trading" ? "arbitrage" : "trading")}
+            onClick={() => setManualTab(currentType === "trading" ? "arbitrage" : "trading")}
           >
             {t("wallet.tabHistory")}
           </button>
