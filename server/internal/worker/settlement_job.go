@@ -7,30 +7,35 @@ import (
 	"time"
 
 	"github.com/shopspring/decimal"
+	invModel "github.com/sovereign-fund/sovereign/internal/modules/investment/model"
 	investRepo "github.com/sovereign-fund/sovereign/internal/modules/investment/repository"
 	settlModel "github.com/sovereign-fund/sovereign/internal/modules/settlement/model"
 	settlRepo "github.com/sovereign-fund/sovereign/internal/modules/settlement/repository"
 	tradeModel "github.com/sovereign-fund/sovereign/internal/modules/tradelog/model"
 	tradeRepo "github.com/sovereign-fund/sovereign/internal/modules/tradelog/repository"
+	tradingModel "github.com/sovereign-fund/sovereign/internal/modules/trading_tradelog/model"
+	tradingRepo "github.com/sovereign-fund/sovereign/internal/modules/trading_tradelog/repository"
 	walletRepo "github.com/sovereign-fund/sovereign/internal/modules/wallet/repository"
 	"github.com/sovereign-fund/sovereign/internal/shared/events"
 	"gorm.io/gorm"
 )
 
 type SettlementJob struct {
-	invRepo       investRepo.InvestmentRepository
-	tradeRepo     tradeRepo.TradeRepository
-	userTradeRepo tradeRepo.UserTradeRepository
-	settlRepo     settlRepo.SettlementRepository
-	walletRepo    walletRepo.WalletRepository
-	eventBus      events.Bus
-	logger        *slog.Logger
-	feeRate       decimal.Decimal
+	invRepo          investRepo.InvestmentRepository
+	tradeRepo        tradeRepo.TradeRepository
+	tradingTradeRepo tradingRepo.TradingTradeRepository
+	userTradeRepo    tradeRepo.UserTradeRepository
+	settlRepo        settlRepo.SettlementRepository
+	walletRepo       walletRepo.WalletRepository
+	eventBus         events.Bus
+	logger           *slog.Logger
+	feeRate          decimal.Decimal
 }
 
 func NewSettlementJob(
 	ir investRepo.InvestmentRepository,
 	tr tradeRepo.TradeRepository,
+	ttr tradingRepo.TradingTradeRepository,
 	utr tradeRepo.UserTradeRepository,
 	sr settlRepo.SettlementRepository,
 	wr walletRepo.WalletRepository,
@@ -38,14 +43,15 @@ func NewSettlementJob(
 	logger *slog.Logger,
 ) *SettlementJob {
 	return &SettlementJob{
-		invRepo:       ir,
-		tradeRepo:     tr,
-		userTradeRepo: utr,
-		settlRepo:     sr,
-		walletRepo:    wr,
-		eventBus:      bus,
-		logger:        logger,
-		feeRate:       decimal.NewFromFloat(0.5),
+		invRepo:          ir,
+		tradeRepo:        tr,
+		tradingTradeRepo: ttr,
+		userTradeRepo:    utr,
+		settlRepo:        sr,
+		walletRepo:       wr,
+		eventBus:         bus,
+		logger:           logger,
+		feeRate:          decimal.NewFromFloat(0.5),
 	}
 }
 
@@ -54,6 +60,7 @@ func NewSettlementJobFromDB(db *gorm.DB, bus events.Bus, logger *slog.Logger) *S
 	return NewSettlementJob(
 		investRepo.NewInvestmentRepository(db),
 		tradeRepo.NewTradeRepository(db),
+		tradingRepo.NewTradingTradeRepository(db),
 		tradeRepo.NewUserTradeRepository(db),
 		settlRepo.NewSettlementRepository(db),
 		walletRepo.NewWalletRepository(db),
@@ -76,44 +83,145 @@ func (j *SettlementJob) RunToday(ctx context.Context) error {
 	return j.RunForDate(ctx, time.Now())
 }
 
-// RunForDate 结算指定日期的交易盈利
+// commonTrade 把套利 (Trade) 与策略 (TradingTrade) 两种来源统一成单一形状，
+// 用于按比例摊分到每个用户的 user_trades 时复用同一段循环。
+type commonTrade struct {
+	ID           string
+	Pair         string
+	BuyExchange  string
+	SellExchange string
+	BuyPrice     decimal.Decimal
+	SellPrice    decimal.Decimal
+	Amount       decimal.Decimal
+	PremiumPct   decimal.Decimal
+	PnL          decimal.Decimal
+	Fee          decimal.Decimal
+	ExecutedAt   time.Time
+}
+
+func arbToCommon(ts []tradeModel.Trade) []commonTrade {
+	out := make([]commonTrade, len(ts))
+	for i, t := range ts {
+		out[i] = commonTrade{
+			ID:           t.ID,
+			Pair:         t.Pair,
+			BuyExchange:  t.BuyExchange,
+			SellExchange: t.SellExchange,
+			BuyPrice:     t.BuyPrice,
+			SellPrice:    t.SellPrice,
+			Amount:       t.Amount,
+			PremiumPct:   t.PremiumPct,
+			PnL:          t.PnL,
+			Fee:          t.Fee,
+			ExecutedAt:   t.ExecutedAt,
+		}
+	}
+	return out
+}
+
+func tradingToCommon(ts []tradingModel.TradingTrade) []commonTrade {
+	out := make([]commonTrade, len(ts))
+	for i, t := range ts {
+		out[i] = commonTrade{
+			ID:           t.ID,
+			Pair:         t.Pair,
+			BuyExchange:  t.BuyExchange,
+			SellExchange: t.SellExchange,
+			BuyPrice:     t.BuyPrice,
+			SellPrice:    t.SellPrice,
+			Amount:       t.Amount,
+			PremiumPct:   t.PremiumPct,
+			PnL:          t.PnL,
+			Fee:          t.Fee,
+			ExecutedAt:   t.ExecutedAt,
+		}
+	}
+	return out
+}
+
+// RunForDate 结算指定日期的交易盈利。
+// 按 product_type 逐个结算（arbitrage、trading），任一产品失败不影响其他产品继续结算。
 func (j *SettlementJob) RunForDate(ctx context.Context, date time.Time) error {
+	products := []string{
+		invModel.ProductTypeArbitrage,
+		invModel.ProductTypeTrading,
+	}
+	var firstErr error
+	for _, productType := range products {
+		if err := j.settleProduct(ctx, date, productType); err != nil {
+			j.logger.Error("settle product failed",
+				slog.String("product", productType),
+				slog.String("error", err.Error()),
+			)
+			if firstErr == nil {
+				firstErr = err
+			}
+		}
+	}
+	return firstErr
+}
+
+// settleProduct 结算单个产品在指定日期的盈利。
+func (j *SettlementJob) settleProduct(ctx context.Context, date time.Time, productType string) error {
 	dayStart := time.Date(date.Year(), date.Month(), date.Day(), 0, 0, 0, 0, time.UTC)
 	dayEnd := dayStart.Add(24 * time.Hour)
 	period := date.Format("2006-01-02")
 
-	j.logger.Info("settlement started", slog.String("period", period))
+	j.logger.Info("settlement started",
+		slog.String("period", period),
+		slog.String("product", productType),
+	)
 
-	// 1. 获取结算日之前创建的所有 active 投资（T+1：投资当天不参与结算，次日起计）
-	activeInvs, err := j.invRepo.FindAllActiveBeforeDate(ctx, dayStart)
+	// 1. 获取结算日之前创建的所有 active 投资（T+1：投资当天不参与结算，次日起计），按产品过滤
+	activeInvs, err := j.invRepo.FindAllActiveBeforeDateByProduct(ctx, dayStart, productType)
 	if err != nil {
 		return fmt.Errorf("find active investments: %w", err)
 	}
 
 	if len(activeInvs) == 0 {
-		j.logger.Info("no active investments, skip settlement")
+		j.logger.Info("no active investments, skip settlement",
+			slog.String("product", productType),
+		)
 		return nil
 	}
 
-	// 2. 统计当天所有基金级交易的总盈利
-	summary, err := j.tradeRepo.SummarizeByPeriod(ctx, dayStart, dayEnd)
-	if err != nil {
-		return fmt.Errorf("summarize trades: %w", err)
+	// 2. 统计当天所有基金级交易的总盈利（按产品来源分别取数）
+	var (
+		totalPnL        decimal.Decimal
+		totalTradeCount int64
+		avgPremium      decimal.Decimal
+	)
+	if productType == invModel.ProductTypeArbitrage {
+		summary, err := j.tradeRepo.SummarizeByPeriod(ctx, dayStart, dayEnd)
+		if err != nil {
+			return fmt.Errorf("summarize trades: %w", err)
+		}
+		totalPnL = decimal.NewFromFloat(summary.TotalPnL)
+		totalTradeCount = summary.TotalTrades
+		avgPremium = decimal.NewFromFloat(summary.AvgPremium)
+	} else {
+		summary, err := j.tradingTradeRepo.SummarizeByPeriod(ctx, dayStart, dayEnd)
+		if err != nil {
+			return fmt.Errorf("summarize trading trades: %w", err)
+		}
+		totalPnL = decimal.NewFromFloat(summary.TotalPnL)
+		totalTradeCount = summary.TotalTrades
+		avgPremium = decimal.NewFromFloat(summary.AvgPremium)
 	}
-
-	totalPnL := decimal.NewFromFloat(summary.TotalPnL)
-	totalTradeCount := summary.TotalTrades
-	avgPremium := decimal.NewFromFloat(summary.AvgPremium)
 
 	j.logger.Info("daily pnl calculated",
 		slog.String("period", period),
+		slog.String("product", productType),
 		slog.String("total_pnl", totalPnL.String()),
 		slog.Int64("total_trades", totalTradeCount),
 	)
 
 	// 如果当天没有盈利，跳过分配
 	if totalPnL.LessThanOrEqual(decimal.Zero) {
-		j.logger.Info("no profit to distribute", slog.String("period", period))
+		j.logger.Info("no profit to distribute",
+			slog.String("period", period),
+			slog.String("product", productType),
+		)
 		return nil
 	}
 
@@ -131,11 +239,22 @@ func (j *SettlementJob) RunForDate(ctx context.Context, date time.Time) error {
 		return nil
 	}
 
-	// 5. 获取当天所有基金级交易（用于生成 user_trades）
-	dayTrades, err := j.tradeRepo.FindByPeriod(ctx, dayStart, dayEnd)
-	if err != nil {
-		j.logger.Error("find day trades failed", slog.String("error", err.Error()))
-		dayTrades = nil
+	// 5. 获取当天所有基金级交易（用于生成 user_trades），按产品来源分别取数
+	var dayTrades []commonTrade
+	if productType == invModel.ProductTypeArbitrage {
+		raw, err := j.tradeRepo.FindByPeriod(ctx, dayStart, dayEnd)
+		if err != nil {
+			j.logger.Error("find day trades failed", slog.String("error", err.Error()))
+		} else {
+			dayTrades = arbToCommon(raw)
+		}
+	} else {
+		raw, err := j.tradingTradeRepo.FindByPeriod(ctx, dayStart, dayEnd)
+		if err != nil {
+			j.logger.Error("find trading day trades failed", slog.String("error", err.Error()))
+		} else {
+			dayTrades = tradingToCommon(raw)
+		}
 	}
 
 	// 6. 按投资金额比例分配给每个投资
@@ -164,6 +283,7 @@ func (j *SettlementJob) RunForDate(ctx context.Context, date time.Time) error {
 			NetReturn:      invShare,
 			TradeCount:     int(tradeCount),
 			AvgPremiumPct:  avgPremium,
+			ProductType:    productType,
 			SettledAt:      time.Now(),
 		}
 
@@ -198,6 +318,7 @@ func (j *SettlementJob) RunForDate(ctx context.Context, date time.Time) error {
 						PnL:          t.PnL.Mul(ratio).Mul(j.feeRate).Round(18), // 扣除绩效费后的净盈亏，与 net_return 口径一致
 						Fee:          t.Fee.Mul(ratio).Round(18),
 						Ratio:        ratio,
+						ProductType:  productType,
 						ExecutedAt:   t.ExecutedAt,
 					})
 				}
@@ -209,6 +330,7 @@ func (j *SettlementJob) RunForDate(ctx context.Context, date time.Time) error {
 				} else {
 					j.logger.Info("user trades created",
 						slog.String("user_id", inv.UserID),
+						slog.String("product", productType),
 						slog.Int("count", len(userTrades)),
 					)
 				}
@@ -225,13 +347,13 @@ func (j *SettlementJob) RunForDate(ctx context.Context, date time.Time) error {
 			continue
 		}
 
-		// 更新钱包收益：将净收益加到 Earnings（用户手动提取到 Available）
+		// 更新钱包收益：将净收益按产品类型加到对应 Earnings 列（用户手动提取到 Available）
 		wallet, err := j.walletRepo.FindByUserIDAndCurrency(ctx, inv.UserID, inv.Currency)
 		if err != nil {
 			j.logger.Error("find wallet failed", slog.String("error", err.Error()))
 			continue
 		}
-		if err := j.walletRepo.AddEarnings(ctx, wallet.ID, invShare, "arbitrage"); err != nil {
+		if err := j.walletRepo.AddEarnings(ctx, wallet.ID, invShare, productType); err != nil {
 			j.logger.Error("add earnings failed", slog.String("error", err.Error()))
 			continue
 		}
@@ -243,12 +365,14 @@ func (j *SettlementJob) RunForDate(ctx context.Context, date time.Time) error {
 				"settlement_id": settlement.ID,
 				"period":        period,
 				"net_return":    invShare.String(),
+				"product_type":  productType,
 			},
 		})
 
 		j.logger.Info("settlement distributed",
 			slog.String("investment_id", inv.ID),
 			slog.String("user_id", inv.UserID),
+			slog.String("product", productType),
 			slog.String("gross", invGross.String()),
 			slog.String("fee", invFee.String()),
 			slog.String("net_to_user", invShare.String()),
@@ -258,6 +382,7 @@ func (j *SettlementJob) RunForDate(ctx context.Context, date time.Time) error {
 
 	j.logger.Info("daily settlement completed",
 		slog.String("period", period),
+		slog.String("product", productType),
 		slog.String("total_pnl", totalPnL.String()),
 		slog.String("user_share", userShare.String()),
 		slog.String("platform_fee", platformFee.String()),

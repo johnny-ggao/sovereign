@@ -12,6 +12,7 @@ import (
 	premiumRepo "github.com/sovereign-fund/sovereign/internal/modules/premium/repository"
 	settlRepo "github.com/sovereign-fund/sovereign/internal/modules/settlement/repository"
 	tradeRepo "github.com/sovereign-fund/sovereign/internal/modules/tradelog/repository"
+	tradingRepo "github.com/sovereign-fund/sovereign/internal/modules/trading_tradelog/repository"
 	walletRepository "github.com/sovereign-fund/sovereign/internal/modules/wallet/repository"
 	"github.com/sovereign-fund/sovereign/internal/shared/database"
 	"github.com/sovereign-fund/sovereign/internal/shared/events"
@@ -45,10 +46,11 @@ func main() {
 	// Settlement job
 	ir := investRepo.NewInvestmentRepository(db)
 	tr := tradeRepo.NewTradeRepository(db)
+	ttr := tradingRepo.NewTradingTradeRepository(db)
 	utr := tradeRepo.NewUserTradeRepository(db)
 	sr := settlRepo.NewSettlementRepository(db)
 	wr := walletRepository.NewWalletRepository(db)
-	settlJob := worker.NewSettlementJob(ir, tr, utr, sr, wr, bus, log)
+	settlJob := worker.NewSettlementJob(ir, tr, ttr, utr, sr, wr, bus, log)
 	redeemJob := worker.NewRedeemJob(db, wr, log)
 
 	// Cleanup job
