@@ -112,7 +112,7 @@ func (s *userService) Detail(ctx context.Context, userID string) (*dto.UserDetai
 			Available:   w.Available.StringFixed(2),
 			InOperation: w.InOperation.StringFixed(2),
 			Frozen:      w.Frozen.StringFixed(2),
-			Earnings:    w.Earnings.StringFixed(2),
+			Earnings:    w.Earnings().StringFixed(2),
 			Total:       w.TotalBalance().StringFixed(2),
 		}
 	}

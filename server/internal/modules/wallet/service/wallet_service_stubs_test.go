@@ -55,7 +55,7 @@ func (s *stubWalletRepo) UpdateBalance(_ context.Context, id string, available, 
 	return nil
 }
 
-func (s *stubWalletRepo) AddEarnings(context.Context, string, decimal.Decimal) error {
+func (s *stubWalletRepo) AddEarnings(context.Context, string, decimal.Decimal, string) error {
 	panic("stubWalletRepo.AddEarnings: unused")
 }
 

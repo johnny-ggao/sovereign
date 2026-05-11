@@ -98,7 +98,7 @@ func (s *walletService) GetWallets(ctx context.Context, userID string) (*dto.Wal
 			Available:   w.Available,
 			InOperation: w.InOperation,
 			Frozen:      w.Frozen,
-			Earnings:    w.Earnings,
+			Earnings:    w.Earnings(),
 			Total:       w.TotalBalance(),
 		})
 		if w.Currency == "USDT" {
@@ -673,14 +673,14 @@ func (s *walletService) ClaimEarnings(ctx context.Context, userID string) error 
 	}
 
 	for _, w := range wallets {
-		if w.Earnings.IsPositive() {
+		if w.Earnings().IsPositive() {
 			if err := s.walletRepo.ClaimEarnings(ctx, w.ID); err != nil {
 				return apperr.Wrap(apperr.ErrInternal, err)
 			}
 			s.logger.Info("earnings claimed",
 				slog.String("user_id", userID),
 				slog.String("currency", w.Currency),
-				slog.String("amount", w.Earnings.String()),
+				slog.String("amount", w.Earnings().String()),
 			)
 		}
 	}

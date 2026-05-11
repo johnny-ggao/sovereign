@@ -231,7 +231,7 @@ func (j *SettlementJob) RunForDate(ctx context.Context, date time.Time) error {
 			j.logger.Error("find wallet failed", slog.String("error", err.Error()))
 			continue
 		}
-		if err := j.walletRepo.AddEarnings(ctx, wallet.ID, invShare); err != nil {
+		if err := j.walletRepo.AddEarnings(ctx, wallet.ID, invShare, "arbitrage"); err != nil {
 			j.logger.Error("add earnings failed", slog.String("error", err.Error()))
 			continue
 		}

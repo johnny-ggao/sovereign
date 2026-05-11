@@ -138,7 +138,7 @@ func (s *stubWalletRepository) UpdateBalance(context.Context, string, decimal.De
 	return nil
 }
 
-func (s *stubWalletRepository) AddEarnings(context.Context, string, decimal.Decimal) error {
+func (s *stubWalletRepository) AddEarnings(context.Context, string, decimal.Decimal, string) error {
 	panic("unexpected AddEarnings call")
 }
 

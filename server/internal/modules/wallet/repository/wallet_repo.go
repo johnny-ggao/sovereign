@@ -14,7 +14,7 @@ type WalletRepository interface {
 	FindByUserIDAndCurrency(ctx context.Context, userID, currency string) (*model.Wallet, error)
 	FindOrCreate(ctx context.Context, userID, currency string) (*model.Wallet, error)
 	UpdateBalance(ctx context.Context, id string, available, inOperation, frozen decimal.Decimal) error
-	AddEarnings(ctx context.Context, id string, amount decimal.Decimal) error
+	AddEarnings(ctx context.Context, id string, amount decimal.Decimal, productType string) error
 	ClaimEarnings(ctx context.Context, id string) error
 }
 
@@ -69,19 +69,24 @@ func (r *walletRepository) UpdateBalance(ctx context.Context, id string, availab
 		}).Error
 }
 
-func (r *walletRepository) AddEarnings(ctx context.Context, id string, amount decimal.Decimal) error {
+func (r *walletRepository) AddEarnings(ctx context.Context, id string, amount decimal.Decimal, productType string) error {
+	col := "earnings_arbitrage"
+	if productType == "trading" {
+		col = "earnings_trading"
+	}
 	return r.db.WithContext(ctx).
 		Model(&model.Wallet{}).
 		Where("id = ?", id).
-		Update("earnings", gorm.Expr("earnings + ?", amount)).Error
+		Update(col, gorm.Expr(col+" + ?", amount)).Error
 }
 
 func (r *walletRepository) ClaimEarnings(ctx context.Context, id string) error {
 	return r.db.WithContext(ctx).
 		Model(&model.Wallet{}).
-		Where("id = ? AND earnings > 0", id).
+		Where("id = ? AND (earnings_arbitrage > 0 OR earnings_trading > 0)", id).
 		Updates(map[string]any{
-			"available": gorm.Expr("available + earnings"),
-			"earnings":  0,
+			"available":          gorm.Expr("available + earnings_arbitrage + earnings_trading"),
+			"earnings_arbitrage": 0,
+			"earnings_trading":   0,
 		}).Error
 }
