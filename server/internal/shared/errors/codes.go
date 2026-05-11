@@ -42,3 +42,9 @@ var (
 	ErrRateLimited    = New(http.StatusTooManyRequests, "RATE_LIMITED", "too many requests")
 	ErrValidation     = New(http.StatusBadRequest, "VALIDATION_ERROR", "validation failed")
 )
+
+// User product (admin tagging)
+var (
+	ErrInvalidProductType = New(http.StatusBadRequest, "INVALID_PRODUCT_TYPE", "invalid product type")
+	ErrSameProductType    = New(http.StatusUnprocessableEntity, "SAME_PRODUCT_TYPE", "user is already on this product type")
+)
