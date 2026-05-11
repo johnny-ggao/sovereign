@@ -39,8 +39,9 @@ func (h *InvestmentHandler) Create(c *gin.Context) {
 
 func (h *InvestmentHandler) GetAll(c *gin.Context) {
 	userID := c.GetString("user_id")
+	productType := c.Query("product_type") // "", "arbitrage", "trading", "all"
 
-	resp, err := h.invSvc.GetAll(c.Request.Context(), userID)
+	resp, err := h.invSvc.GetAll(c.Request.Context(), userID, productType)
 	if err != nil {
 		handleError(c, err)
 		return

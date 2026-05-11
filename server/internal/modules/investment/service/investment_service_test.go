@@ -76,9 +76,10 @@ func TestRedeemMarksInvestmentStoppingWithoutTouchingWallet(t *testing.T) {
 }
 
 type stubInvestmentRepository struct {
-	byID    map[string]*model.Investment
-	updated *model.Investment
-	created []*model.Investment
+	byID             map[string]*model.Investment
+	updated          *model.Investment
+	created          []*model.Investment
+	byUserAndProduct map[string][]model.Investment
 }
 
 func (s *stubInvestmentRepository) Create(_ context.Context, inv *model.Investment) error {
@@ -110,8 +111,9 @@ func (s *stubInvestmentRepository) FindAllActiveBeforeDateByProduct(context.Cont
 	return nil, nil
 }
 
-func (s *stubInvestmentRepository) FindByUserIDAndProduct(context.Context, string, string) ([]model.Investment, error) {
-	return nil, nil
+func (s *stubInvestmentRepository) FindByUserIDAndProduct(_ context.Context, userID, productType string) ([]model.Investment, error) {
+	key := userID + "|" + productType
+	return s.byUserAndProduct[key], nil
 }
 
 func (s *stubInvestmentRepository) Update(_ context.Context, inv *model.Investment) error {
@@ -240,5 +242,56 @@ func TestCreate_DefaultsToArbitrageWhenUserHasNoType(t *testing.T) {
 	resp, _ := svc.Create(ctx, "u1", dto.CreateInvestmentRequest{Amount: "200", Currency: "USDT"})
 	if resp == nil || resp.ProductType != "arbitrage" {
 		t.Errorf("ProductType = %v, want arbitrage", resp)
+	}
+}
+
+func TestGetAll_FiltersByProductType(t *testing.T) {
+	ctx := context.Background()
+	invRepo := &stubInvestmentRepository{
+		byUserAndProduct: map[string][]model.Investment{
+			"u1|trading":   {{ID: "i1", UserID: "u1", ProductType: "trading", Status: "active", Amount: decimal.NewFromInt(100)}},
+			"u1|arbitrage": {{ID: "i2", UserID: "u1", ProductType: "arbitrage", Status: "active", Amount: decimal.NewFromInt(200)}},
+		},
+	}
+	uRepo := &stubUserRepo{users: map[string]*usermodel.User{"u1": {ID: "u1", InvestmentType: "trading"}}}
+	wRepo := &stubWalletRepository{}
+	svc := NewInvestmentService(invRepo, wRepo, uRepo, &recordingBus{}, slog.New(slog.NewTextHandler(io.Discard, nil)))
+
+	resp, err := svc.GetAll(ctx, "u1", "trading")
+	if err != nil {
+		t.Fatalf("GetAll trading error = %v", err)
+	}
+	if len(resp.Investments) != 1 || resp.Investments[0].ProductType != "trading" {
+		t.Errorf("trading filter: got %+v", resp.Investments)
+	}
+
+	respArb, err := svc.GetAll(ctx, "u1", "arbitrage")
+	if err != nil {
+		t.Fatalf("GetAll arbitrage error = %v", err)
+	}
+	if len(respArb.Investments) != 1 || respArb.Investments[0].ProductType != "arbitrage" {
+		t.Errorf("arbitrage filter: got %+v", respArb.Investments)
+	}
+}
+
+func TestGetAll_DefaultsToUserInvestmentType(t *testing.T) {
+	ctx := context.Background()
+	invRepo := &stubInvestmentRepository{
+		byUserAndProduct: map[string][]model.Investment{
+			"u1|trading":   {{ID: "i1", UserID: "u1", ProductType: "trading", Status: "active", Amount: decimal.NewFromInt(100)}},
+			"u1|arbitrage": {{ID: "i2", UserID: "u1", ProductType: "arbitrage", Status: "active", Amount: decimal.NewFromInt(200)}},
+		},
+	}
+	uRepo := &stubUserRepo{users: map[string]*usermodel.User{"u1": {ID: "u1", InvestmentType: "trading"}}}
+	wRepo := &stubWalletRepository{}
+	svc := NewInvestmentService(invRepo, wRepo, uRepo, &recordingBus{}, slog.New(slog.NewTextHandler(io.Discard, nil)))
+
+	// productType="" → default to user's InvestmentType
+	resp, err := svc.GetAll(ctx, "u1", "")
+	if err != nil {
+		t.Fatalf("GetAll error = %v", err)
+	}
+	if len(resp.Investments) != 1 || resp.Investments[0].ProductType != "trading" {
+		t.Errorf("default-to-user-type: got %+v", resp.Investments)
 	}
 }

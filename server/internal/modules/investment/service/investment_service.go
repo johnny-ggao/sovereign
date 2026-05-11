@@ -22,7 +22,7 @@ var minInvestAmount = decimal.NewFromInt(100)
 
 type InvestmentService interface {
 	Create(ctx context.Context, userID string, req dto.CreateInvestmentRequest) (*dto.InvestmentResponse, error)
-	GetAll(ctx context.Context, userID string) (*dto.InvestmentListResponse, error)
+	GetAll(ctx context.Context, userID, productType string) (*dto.InvestmentListResponse, error)
 	GetByID(ctx context.Context, userID, id string) (*dto.InvestmentResponse, error)
 	Redeem(ctx context.Context, userID string, req dto.RedeemRequest) (*dto.InvestmentResponse, error)
 }
@@ -122,8 +122,16 @@ func (s *investmentService) Create(ctx context.Context, userID string, req dto.C
 	return toInvestmentResponse(inv), nil
 }
 
-func (s *investmentService) GetAll(ctx context.Context, userID string) (*dto.InvestmentListResponse, error) {
-	invs, err := s.invRepo.FindByUserID(ctx, userID)
+func (s *investmentService) GetAll(ctx context.Context, userID, productType string) (*dto.InvestmentListResponse, error) {
+	if productType == "" {
+		user, err := s.userRepo.FindByID(ctx, userID)
+		if err == nil && user != nil && user.InvestmentType != "" {
+			productType = user.InvestmentType
+		} else {
+			productType = model.ProductTypeArbitrage
+		}
+	}
+	invs, err := s.invRepo.FindByUserIDAndProduct(ctx, userID, productType)
 	if err != nil {
 		return nil, apperr.Wrap(apperr.ErrInternal, err)
 	}
