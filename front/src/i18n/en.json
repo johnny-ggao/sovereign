@@ -212,6 +212,7 @@
   "trade": {
     "title": "Trade Log",
     "subtitle": "Arbitrage trade history",
+    "subtitleTrading": "Trading strategy history",
     "totalTrades": "Total Trades",
     "totalPnl": "Total PnL",
     "avgPremium": "Avg Premium",

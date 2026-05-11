@@ -212,6 +212,7 @@
   "trade": {
     "title": "거래 내역",
     "subtitle": "차익거래 히스토리",
+    "subtitleTrading": "트레이딩 전략 히스토리",
     "totalTrades": "총 거래 수",
     "totalPnl": "총 손익",
     "avgPremium": "평균 프리미엄",

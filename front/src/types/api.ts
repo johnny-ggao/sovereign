@@ -167,6 +167,7 @@ export interface InvestmentList {
 export interface Trade {
   id: string
   investment_id: string
+  product_type?: "arbitrage" | "trading"
   pair: string
   buy_exchange: string
   sell_exchange: string

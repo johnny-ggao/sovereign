@@ -3,7 +3,7 @@
 import { useState } from "react"
 import { useQuery } from "@tanstack/react-query"
 import { api } from "@/lib/api-client"
-import type { TradeList } from "@/types/api"
+import type { TradeList, UserProfile } from "@/types/api"
 import { Card, CardContent } from "@/components/ui/card"
 import { Button } from "@/components/ui/button"
 import { Badge } from "@/components/ui/badge"
@@ -12,48 +12,96 @@ import { Skeleton } from "@/components/ui/skeleton"
 import { Download, BarChart3, TrendingUp, Target, Trophy } from "lucide-react"
 import { formatCurrency, formatPct, formatDateTime } from "@/lib/format"
 import { useT } from "@/hooks/use-t"
+import { useProfile } from "@/hooks/use-api"
+
+type ProductTab = "arbitrage" | "trading"
 
 export default function TradesPage() {
   const [page, setPage] = useState(1)
   const t = useT()
 
-  const { data, isLoading } = useQuery({
-    queryKey: ["trades", page],
-    queryFn: () => api.get<TradeList>(`/trades?page=${page}&per_page=20`),
+  const { data: profile } = useProfile()
+  const currentType: ProductTab = (profile?.investment_type as ProductTab) ?? "arbitrage"
+
+  // Always fetch BOTH product types to decide whether to show tabs.
+  const { data: arbData, isLoading: arbLoading } = useQuery({
+    queryKey: ["trades", "arbitrage", page],
+    queryFn: () => api.get<TradeList>(`/trades?page=${page}&per_page=20&product_type=arbitrage`),
   })
+  const { data: tradingData, isLoading: tradingLoading } = useQuery({
+    queryKey: ["trades", "trading", page],
+    queryFn: () => api.get<TradeList>(`/trades?page=${page}&per_page=20&product_type=trading`),
+  })
+
+  const hasArb = (arbData?.summary?.total_trades ?? 0) > 0
+  const hasTrading = (tradingData?.summary?.total_trades ?? 0) > 0
+  const showTabs = hasArb && hasTrading
+
+  const [tab, setTab] = useState<ProductTab>(currentType)
+  const data = tab === "trading" ? tradingData : arbData
+  const isLoading = tab === "trading" ? tradingLoading : arbLoading
 
   async function handleExport() {
     const res = await fetch(
-      `${process.env.NEXT_PUBLIC_API_URL || "http://localhost:8080/api/v1"}/trades/export`,
+      `${process.env.NEXT_PUBLIC_API_URL || "http://localhost:8080/api/v1"}/trades/export?product_type=${tab}`,
       { headers: { Authorization: `Bearer ${localStorage.getItem("access_token")}` } },
     )
     const blob = await res.blob()
     const url = URL.createObjectURL(blob)
     const a = document.createElement("a")
     a.href = url
-    a.download = "trades.csv"
+    a.download = `trades-${tab}.csv`
     a.click()
     URL.revokeObjectURL(url)
   }
 
-  if (isLoading) return <Skeleton className="h-96" />
+  if (isLoading && !data) return <Skeleton className="h-96" />
 
   const summary = data?.summary
+  const isTrading = tab === "trading"
 
   return (
     <div className="space-y-6 glow-bg">
       <div className="flex items-center justify-between">
         <div>
           <h1 className="text-2xl font-semibold tracking-tight md:text-3xl">{t("trade.title")}</h1>
-          <p className="text-sm text-muted-foreground">{t("trade.subtitle")}</p>
+          <p className="text-sm text-muted-foreground">
+            {isTrading ? t("trade.subtitleTrading") : t("trade.subtitle")}
+          </p>
         </div>
         <Button variant="outline" size="sm" onClick={handleExport}>
-          <Download className="mr-2 h-4 w-4" /><span className="hidden sm:inline">{t("common.export")}</span>
+          <Download className="mr-2 h-4 w-4" />
+          <span className="hidden sm:inline">{t("common.export")}</span>
         </Button>
       </div>
 
+      {showTabs && (
+        <div className="flex gap-2 border-b border-border/40">
+          <button
+            className={`px-3 py-1.5 text-sm transition-colors ${
+              tab === currentType
+                ? "border-b-2 border-primary text-foreground"
+                : "text-muted-foreground"
+            }`}
+            onClick={() => setTab(currentType)}
+          >
+            {t("wallet.tabCurrent")}
+          </button>
+          <button
+            className={`px-3 py-1.5 text-sm transition-colors ${
+              tab !== currentType
+                ? "border-b-2 border-primary text-foreground"
+                : "text-muted-foreground"
+            }`}
+            onClick={() => setTab(currentType === "trading" ? "arbitrage" : "trading")}
+          >
+            {t("wallet.tabHistory")}
+          </button>
+        </div>
+      )}
+
       {/* Summary */}
-      <div className="grid grid-cols-2 gap-3 md:grid-cols-4">
+      <div className={`grid grid-cols-2 gap-3 ${isTrading ? "md:grid-cols-3" : "md:grid-cols-4"}`}>
         <Card className="glass border-0 rounded-2xl">
           <CardContent className="flex items-center gap-3 p-4">
             <BarChart3 className="h-5 w-5 shrink-0 text-primary" />
@@ -68,21 +116,27 @@ export default function TradesPage() {
             <TrendingUp className="h-5 w-5 shrink-0 text-success" />
             <div className="min-w-0">
               <p className="text-[10px] text-muted-foreground">{t("trade.totalPnl")}</p>
-              <p className={`text-lg font-bold truncate ${parseFloat(summary?.total_pnl || "0") >= 0 ? "text-success" : "text-destructive"}`}>
+              <p
+                className={`text-lg font-bold truncate ${
+                  parseFloat(summary?.total_pnl || "0") >= 0 ? "text-success" : "text-destructive"
+                }`}
+              >
                 ${formatCurrency(summary?.total_pnl || "0")}
               </p>
             </div>
           </CardContent>
         </Card>
-        <Card className="glass border-0 rounded-2xl">
-          <CardContent className="flex items-center gap-3 p-4">
-            <Target className="h-5 w-5 shrink-0 text-chart-3" />
-            <div className="min-w-0">
-              <p className="text-[10px] text-muted-foreground">{t("trade.avgPremium")}</p>
-              <p className="text-lg font-bold">{formatPct(summary?.avg_premium_pct || "0")}</p>
-            </div>
-          </CardContent>
-        </Card>
+        {!isTrading && (
+          <Card className="glass border-0 rounded-2xl">
+            <CardContent className="flex items-center gap-3 p-4">
+              <Target className="h-5 w-5 shrink-0 text-chart-3" />
+              <div className="min-w-0">
+                <p className="text-[10px] text-muted-foreground">{t("trade.avgPremium")}</p>
+                <p className="text-lg font-bold">{formatPct(summary?.avg_premium_pct || "0")}</p>
+              </div>
+            </CardContent>
+          </Card>
+        )}
         <Card className="glass border-0 rounded-2xl">
           <CardContent className="flex items-center gap-3 p-4">
             <Trophy className="h-5 w-5 shrink-0 text-warning" />
@@ -101,10 +155,10 @@ export default function TradesPage() {
             <TableHeader>
               <TableRow className="hover:bg-transparent">
                 <TableHead>{t("trade.pair")}</TableHead>
-                <TableHead>{t("trade.buy")}</TableHead>
-                <TableHead>{t("trade.sell")}</TableHead>
-                <TableHead>{t("trade.amount")}</TableHead>
-                <TableHead>{t("premium.premium")}</TableHead>
+                {!isTrading && <TableHead>{t("trade.buy")}</TableHead>}
+                {!isTrading && <TableHead>{t("trade.sell")}</TableHead>}
+                {!isTrading && <TableHead>{t("trade.amount")}</TableHead>}
+                {!isTrading && <TableHead>{t("premium.premium")}</TableHead>}
                 <TableHead>{t("trade.pnl")}</TableHead>
                 <TableHead>{t("trade.time")}</TableHead>
               </TableRow>
@@ -116,20 +170,30 @@ export default function TradesPage() {
                   return (
                     <TableRow key={trade.id}>
                       <TableCell className="font-medium">{trade.pair}</TableCell>
-                      <TableCell>
-                        <p className="text-sm">{trade.buy_exchange}</p>
-                        <p className="text-xs text-muted-foreground">₩{formatCurrency(trade.buy_price, 0)}</p>
-                      </TableCell>
-                      <TableCell>
-                        <p className="text-sm">{trade.sell_exchange}</p>
-                        <p className="text-xs text-muted-foreground">₩{formatCurrency(trade.sell_price, 0)}</p>
-                      </TableCell>
-                      <TableCell>${formatCurrency(trade.amount)}</TableCell>
-                      <TableCell>
-                        <Badge variant="outline" className="border-success/30 text-success">
-                          {formatPct(trade.premium_pct)}
-                        </Badge>
-                      </TableCell>
+                      {!isTrading && (
+                        <TableCell>
+                          <p className="text-sm">{trade.buy_exchange}</p>
+                          <p className="text-xs text-muted-foreground">
+                            ₩{formatCurrency(trade.buy_price, 0)}
+                          </p>
+                        </TableCell>
+                      )}
+                      {!isTrading && (
+                        <TableCell>
+                          <p className="text-sm">{trade.sell_exchange}</p>
+                          <p className="text-xs text-muted-foreground">
+                            ₩{formatCurrency(trade.sell_price, 0)}
+                          </p>
+                        </TableCell>
+                      )}
+                      {!isTrading && <TableCell>${formatCurrency(trade.amount)}</TableCell>}
+                      {!isTrading && (
+                        <TableCell>
+                          <Badge variant="outline" className="border-success/30 text-success">
+                            {formatPct(trade.premium_pct)}
+                          </Badge>
+                        </TableCell>
+                      )}
                       <TableCell className={pnl >= 0 ? "text-success" : "text-destructive"}>
                         ${formatCurrency(trade.pnl)}
                       </TableCell>
@@ -141,7 +205,7 @@ export default function TradesPage() {
                 })
               ) : (
                 <TableRow>
-                  <TableCell colSpan={7} className="py-12 text-center text-muted-foreground">
+                  <TableCell colSpan={isTrading ? 3 : 7} className="py-12 text-center text-muted-foreground">
                     {t("trade.noTrades")}
                   </TableCell>
                 </TableRow>
@@ -161,20 +225,37 @@ export default function TradesPage() {
                 <div className="flex items-center justify-between">
                   <div className="flex items-center gap-2">
                     <span className="font-semibold">{trade.pair}</span>
-                    <Badge variant="outline" className="border-success/30 text-success text-[10px]">
-                      {formatPct(trade.premium_pct)}
-                    </Badge>
+                    {!isTrading && (
+                      <Badge
+                        variant="outline"
+                        className="border-success/30 text-success text-[10px]"
+                      >
+                        {formatPct(trade.premium_pct)}
+                      </Badge>
+                    )}
                   </div>
-                  <span className={`font-bold ${pnl >= 0 ? "text-success" : "text-destructive"}`}>
+                  <span
+                    className={`font-bold ${pnl >= 0 ? "text-success" : "text-destructive"}`}
+                  >
                     ${formatCurrency(trade.pnl)}
                   </span>
                 </div>
-                <div className="mt-2 flex items-center justify-between text-xs text-muted-foreground">
-                  <span>{trade.buy_exchange} → {trade.sell_exchange}</span>
-                  <span>${formatCurrency(trade.amount)}</span>
-                </div>
-                <div className="mt-1 flex items-center justify-between text-[10px] text-muted-foreground">
-                  <span>₩{formatCurrency(trade.buy_price, 0)} → ₩{formatCurrency(trade.sell_price, 0)}</span>
+                {!isTrading && (
+                  <div className="mt-2 flex items-center justify-between text-xs text-muted-foreground">
+                    <span>
+                      {trade.buy_exchange} → {trade.sell_exchange}
+                    </span>
+                    <span>${formatCurrency(trade.amount)}</span>
+                  </div>
+                )}
+                <div className={`${isTrading ? "mt-2" : "mt-1"} flex items-center justify-between text-[10px] text-muted-foreground`}>
+                  {!isTrading ? (
+                    <span>
+                      ₩{formatCurrency(trade.buy_price, 0)} → ₩{formatCurrency(trade.sell_price, 0)}
+                    </span>
+                  ) : (
+                    <span />
+                  )}
                   <span>{formatDateTime(trade.executed_at)}</span>
                 </div>
               </div>

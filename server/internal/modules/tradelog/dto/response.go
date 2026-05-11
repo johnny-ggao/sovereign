@@ -5,6 +5,7 @@ import "github.com/shopspring/decimal"
 type TradeResponse struct {
 	ID           string          `json:"id"`
 	InvestmentID string          `json:"investment_id"`
+	ProductType  string          `json:"product_type,omitempty"`
 	Pair         string          `json:"pair"`
 	BuyExchange  string          `json:"buy_exchange"`
 	SellExchange string          `json:"sell_exchange"`
@@ -32,6 +33,7 @@ type TradeSummary struct {
 type TradeFilterRequest struct {
 	InvestmentID string `form:"investment_id" binding:"omitempty,uuid"`
 	Pair         string `form:"pair" binding:"omitempty"`
+	ProductType  string `form:"product_type" binding:"omitempty,oneof=arbitrage trading all"`
 	From         string `form:"from" binding:"omitempty"`
 	To           string `form:"to" binding:"omitempty"`
 }

@@ -212,6 +212,7 @@
   "trade": {
     "title": "交易记录",
     "subtitle": "套利交易历史",
+    "subtitleTrading": "交易策略历史",
     "totalTrades": "总交易数",
     "totalPnl": "总盈亏",
     "avgPremium": "平均溢价",

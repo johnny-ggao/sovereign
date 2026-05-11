@@ -141,7 +141,8 @@ func (s *tradeService) GetTrades(ctx context.Context, userID string, filters dto
 	offset := (page - 1) * perPage
 
 	repoFilters := repository.UserTradeFilters{
-		Pair: filters.Pair,
+		Pair:        filters.Pair,
+		ProductType: filters.ProductType,
 	}
 	if filters.From != "" {
 		if t, err := time.Parse(time.RFC3339, filters.From); err == nil {
@@ -169,6 +170,7 @@ func (s *tradeService) GetTrades(ctx context.Context, userID string, filters dto
 		resp = append(resp, dto.TradeResponse{
 			ID:           t.ID,
 			InvestmentID: t.InvestmentID,
+			ProductType:  t.ProductType,
 			Pair:         t.Pair,
 			BuyExchange:  t.BuyExchange,
 			SellExchange: t.SellExchange,
@@ -253,7 +255,8 @@ func (s *tradeService) queryTrades(ctx context.Context, filters repository.Trade
 
 func (s *tradeService) ExportCSV(ctx context.Context, userID string, filters dto.TradeFilterRequest) ([]byte, error) {
 	repoFilters := repository.UserTradeFilters{
-		Pair: filters.Pair,
+		Pair:        filters.Pair,
+		ProductType: filters.ProductType,
 	}
 
 	trades, _, err := s.userTradeRepo.FindByUserID(ctx, userID, repoFilters, 10000, 0)

@@ -11,6 +11,7 @@ import (
 type UserTradeFilters struct {
 	Pair         string
 	InvestmentID string
+	ProductType  string
 	From         time.Time
 	To           time.Time
 }
@@ -81,6 +82,9 @@ func (r *userTradeRepository) applyFilters(query *gorm.DB, filters UserTradeFilt
 	}
 	if filters.InvestmentID != "" {
 		query = query.Where("investment_id = ?", filters.InvestmentID)
+	}
+	if filters.ProductType != "" && filters.ProductType != "all" {
+		query = query.Where("product_type = ?", filters.ProductType)
 	}
 	if !filters.From.IsZero() {
 		query = query.Where("executed_at >= ?", filters.From)
