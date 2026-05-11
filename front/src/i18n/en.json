@@ -173,7 +173,9 @@
     "withdrawSubmittedQueued": "Withdrawal request submitted, awaiting admin review",
     "rejectReason": "Reason",
     "cancelConfirm": "Cancel this withdrawal? The amount will be refunded to your available balance.",
-    "statusConfirmed": "Completed"
+    "statusConfirmed": "Completed",
+    "tabCurrent": "Current",
+    "tabHistory": "Historical"
   },
   "investment": {
     "title": "Investments",

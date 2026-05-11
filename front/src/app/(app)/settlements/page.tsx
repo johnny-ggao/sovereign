@@ -1,6 +1,7 @@
 "use client"
 
-import { useSettlements } from "@/hooks/use-api"
+import { useMemo, useState } from "react"
+import { useSettlements, useProfile } from "@/hooks/use-api"
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
 import { Badge } from "@/components/ui/badge"
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table"
@@ -11,7 +12,26 @@ import { useT } from "@/hooks/use-t"
 
 export default function SettlementsPage() {
   const { data, isLoading } = useSettlements()
+  const { data: profile } = useProfile()
   const t = useT()
+  const [tab, setTab] = useState<"current" | "historical">("current")
+
+  const currentType = profile?.investment_type ?? "arbitrage"
+  const allSettlements = useMemo(() => data?.settlements ?? [], [data])
+  const currentSettlements = useMemo(
+    () => allSettlements.filter((s) => (s.product_type ?? "arbitrage") === currentType),
+    [allSettlements, currentType]
+  )
+  const historicalSettlements = useMemo(
+    () => allSettlements.filter((s) => (s.product_type ?? "arbitrage") !== currentType),
+    [allSettlements, currentType]
+  )
+  const showTabs = currentSettlements.length > 0 && historicalSettlements.length > 0
+  const visibleSettlements = !showTabs
+    ? allSettlements
+    : tab === "current"
+    ? currentSettlements
+    : historicalSettlements
 
   if (isLoading) return <Skeleton className="h-96" />
 
@@ -65,6 +85,32 @@ export default function SettlementsPage() {
       </div>
 
       {/* Settlement Table */}
+      {showTabs && (
+        <div className="flex gap-2 border-b">
+          <button
+            type="button"
+            className={
+              tab === "current"
+                ? "border-b-2 border-primary px-3 py-1.5 text-sm font-medium"
+                : "px-3 py-1.5 text-sm text-muted-foreground"
+            }
+            onClick={() => setTab("current")}
+          >
+            {t("wallet.tabCurrent")}
+          </button>
+          <button
+            type="button"
+            className={
+              tab === "historical"
+                ? "border-b-2 border-primary px-3 py-1.5 text-sm font-medium"
+                : "px-3 py-1.5 text-sm text-muted-foreground"
+            }
+            onClick={() => setTab("historical")}
+          >
+            {t("wallet.tabHistory")}
+          </button>
+        </div>
+      )}
       <Card className="glass border-0 rounded-2xl">
         <CardHeader>
           <CardTitle>{t("settlement.monthlyReports")}</CardTitle>
@@ -83,8 +129,8 @@ export default function SettlementsPage() {
               </TableRow>
             </TableHeader>
             <TableBody>
-              {data?.settlements && data.settlements.length > 0 ? (
-                data.settlements.map((s) => (
+              {visibleSettlements.length > 0 ? (
+                visibleSettlements.map((s) => (
                   <TableRow key={s.id}>
                     <TableCell className="font-medium">{s.period}</TableCell>
                     <TableCell>{s.trade_count}</TableCell>

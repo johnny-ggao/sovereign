@@ -173,7 +173,9 @@
     "withdrawSubmittedQueued": "提现申请已提交，等待管理员审核",
     "rejectReason": "拒绝原因",
     "cancelConfirm": "确认撤销该笔提现申请？金额将退回到可用余额。",
-    "statusConfirmed": "已到账"
+    "statusConfirmed": "已到账",
+    "tabCurrent": "当前产品",
+    "tabHistory": "历史产品"
   },
   "investment": {
     "title": "投资管理",

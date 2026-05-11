@@ -1,7 +1,7 @@
 "use client"
 
-import { useState } from "react"
-import { useInvestments, useCreateInvestment, useRedeemInvestment } from "@/hooks/use-api"
+import { useMemo, useState } from "react"
+import { useInvestments, useCreateInvestment, useRedeemInvestment, useProfile } from "@/hooks/use-api"
 import { ApiError } from "@/lib/api-client"
 import { toast } from "sonner"
 import { Card, CardContent } from "@/components/ui/card"
@@ -26,13 +26,32 @@ import { useT } from "@/hooks/use-t"
 
 export default function InvestmentsPage() {
   const { data, isLoading } = useInvestments()
+  const { data: profile } = useProfile()
   const createInv = useCreateInvestment()
   const redeemInv = useRedeemInvestment()
   const [amount, setAmount] = useState("")
   const [dialogOpen, setDialogOpen] = useState(false)
   const [confirmInvestOpen, setConfirmInvestOpen] = useState(false)
   const [confirmRedeemId, setConfirmRedeemId] = useState<string | null>(null)
+  const [tab, setTab] = useState<"current" | "historical">("current")
   const t = useT()
+
+  const currentType = profile?.investment_type ?? "arbitrage"
+  const allInvestments = useMemo(() => data?.investments ?? [], [data])
+  const currentInvestments = useMemo(
+    () => allInvestments.filter((i) => (i.product_type ?? "arbitrage") === currentType),
+    [allInvestments, currentType]
+  )
+  const historicalInvestments = useMemo(
+    () => allInvestments.filter((i) => (i.product_type ?? "arbitrage") !== currentType),
+    [allInvestments, currentType]
+  )
+  const showTabs = currentInvestments.length > 0 && historicalInvestments.length > 0
+  const visibleInvestments = !showTabs
+    ? allInvestments
+    : tab === "current"
+    ? currentInvestments
+    : historicalInvestments
 
   const [createError, setCreateError] = useState("")
 
@@ -187,9 +206,35 @@ export default function InvestmentsPage() {
       </div>
 
       {/* Investment List */}
+      {showTabs && (
+        <div className="flex gap-2 border-b">
+          <button
+            type="button"
+            className={
+              tab === "current"
+                ? "border-b-2 border-primary px-3 py-1.5 text-sm font-medium"
+                : "px-3 py-1.5 text-sm text-muted-foreground"
+            }
+            onClick={() => setTab("current")}
+          >
+            {t("wallet.tabCurrent")}
+          </button>
+          <button
+            type="button"
+            className={
+              tab === "historical"
+                ? "border-b-2 border-primary px-3 py-1.5 text-sm font-medium"
+                : "px-3 py-1.5 text-sm text-muted-foreground"
+            }
+            onClick={() => setTab("historical")}
+          >
+            {t("wallet.tabHistory")}
+          </button>
+        </div>
+      )}
       <div className="space-y-4">
-        {data?.investments && data.investments.length > 0 ? (
-          data.investments.map((inv) => (
+        {visibleInvestments.length > 0 ? (
+          visibleInvestments.map((inv) => (
             <Card key={inv.id} className="glass border-0 rounded-2xl">
               <CardContent className="flex items-center justify-between p-6">
                 <div className="space-y-1">

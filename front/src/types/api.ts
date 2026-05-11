@@ -30,6 +30,7 @@ export interface UserProfile {
   kyc_status: string
   two_fa_enabled: boolean
   created_at?: string
+  investment_type?: "arbitrage" | "trading"
 }
 
 // Dashboard
@@ -150,6 +151,7 @@ export interface Investment {
   return_pct: string
   start_date: string
   end_date: string | null
+  product_type?: "arbitrage" | "trading"
 }
 
 export interface InvestmentList {
@@ -200,6 +202,7 @@ export interface Settlement {
   avg_premium_pct: string
   report_url: string
   settled_at: string
+  product_type?: "arbitrage" | "trading"
 }
 
 export interface SettlementList {
