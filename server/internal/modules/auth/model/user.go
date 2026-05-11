@@ -19,6 +19,7 @@ type User struct {
 	KYCStatus     string    `gorm:"type:varchar(20);default:pending" json:"kyc_status"`
 	TwoFASecret   string    `gorm:"type:text" json:"-"`
 	TwoFAEnabled  bool      `gorm:"default:false" json:"two_fa_enabled"`
+	InvestmentType string   `gorm:"type:varchar(20);not null;default:arbitrage" json:"investment_type"`
 	CreatedAt     time.Time `gorm:"autoCreateTime" json:"created_at"`
 	UpdatedAt     time.Time `gorm:"autoUpdateTime" json:"updated_at"`
 }
@@ -29,4 +30,9 @@ func (u *User) BeforeCreate(_ *gorm.DB) error {
 	}
 	return nil
 }
+
+const (
+	InvestmentTypeArbitrage = "arbitrage"
+	InvestmentTypeTrading   = "trading"
+)
 
