@@ -13,6 +13,7 @@ type Investment struct {
 	UserID         string          `gorm:"type:uuid;index;not null" json:"user_id"`
 	Amount         decimal.Decimal `gorm:"type:decimal(28,18);not null" json:"amount"`
 	Currency       string          `gorm:"type:varchar(10);not null;default:USDT" json:"currency"`
+	ProductType    string          `gorm:"type:varchar(20);not null;default:arbitrage" json:"product_type"`
 	Status         string          `gorm:"type:varchar(20);default:active" json:"status"`
 	TotalReturn    decimal.Decimal `gorm:"type:decimal(28,18);default:0" json:"total_return"`
 	PerformanceFee decimal.Decimal `gorm:"type:decimal(28,18);default:0" json:"performance_fee"`
@@ -37,4 +38,9 @@ const (
 	InvestStatusActive   = "active"
 	InvestStatusStopping = "stopping"
 	InvestStatusRedeemed = "redeemed"
+)
+
+const (
+	ProductTypeArbitrage = "arbitrage"
+	ProductTypeTrading   = "trading"
 )

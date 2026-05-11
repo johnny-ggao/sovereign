@@ -16,6 +16,8 @@ type InvestmentRepository interface {
 	FindAllActive(ctx context.Context) ([]model.Investment, error)
 	// FindAllActiveBeforeDate 返回在 before 时间之前创建的所有活跃投资（用于 T+1 结算）
 	FindAllActiveBeforeDate(ctx context.Context, before time.Time) ([]model.Investment, error)
+	FindAllActiveBeforeDateByProduct(ctx context.Context, before time.Time, productType string) ([]model.Investment, error)
+	FindByUserIDAndProduct(ctx context.Context, userID, productType string) ([]model.Investment, error)
 	Update(ctx context.Context, inv *model.Investment) error
 }
 
@@ -72,4 +74,22 @@ func (r *investmentRepository) FindAllActiveBeforeDate(ctx context.Context, befo
 
 func (r *investmentRepository) Update(ctx context.Context, inv *model.Investment) error {
 	return r.db.WithContext(ctx).Save(inv).Error
+}
+
+func (r *investmentRepository) FindAllActiveBeforeDateByProduct(ctx context.Context, before time.Time, productType string) ([]model.Investment, error) {
+	var invs []model.Investment
+	err := r.db.WithContext(ctx).
+		Where("status = ? AND start_date < ? AND product_type = ?", model.InvestStatusActive, before, productType).
+		Find(&invs).Error
+	return invs, err
+}
+
+func (r *investmentRepository) FindByUserIDAndProduct(ctx context.Context, userID, productType string) ([]model.Investment, error) {
+	var invs []model.Investment
+	q := r.db.WithContext(ctx).Where("user_id = ?", userID)
+	if productType != "" && productType != "all" {
+		q = q.Where("product_type = ?", productType)
+	}
+	err := q.Order("created_at DESC").Find(&invs).Error
+	return invs, err
 }

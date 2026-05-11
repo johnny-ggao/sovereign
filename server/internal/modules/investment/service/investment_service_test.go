@@ -100,6 +100,14 @@ func (s *stubInvestmentRepository) FindAllActiveBeforeDate(context.Context, time
 	panic("unexpected FindAllActiveBeforeDate call")
 }
 
+func (s *stubInvestmentRepository) FindAllActiveBeforeDateByProduct(context.Context, time.Time, string) ([]model.Investment, error) {
+	return nil, nil
+}
+
+func (s *stubInvestmentRepository) FindByUserIDAndProduct(context.Context, string, string) ([]model.Investment, error) {
+	return nil, nil
+}
+
 func (s *stubInvestmentRepository) Update(_ context.Context, inv *model.Investment) error {
 	s.updated = inv
 	return nil
