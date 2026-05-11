@@ -3,6 +3,7 @@ package investment
 import (
 	"log/slog"
 
+	authRepo "github.com/sovereign-fund/sovereign/internal/modules/auth/repository"
 	"github.com/sovereign-fund/sovereign/internal/modules/investment/handler"
 	"github.com/sovereign-fund/sovereign/internal/modules/investment/repository"
 	"github.com/sovereign-fund/sovereign/internal/modules/investment/service"
@@ -19,7 +20,8 @@ type Module struct {
 func NewModule(db *gorm.DB, bus events.Bus, logger *slog.Logger) *Module {
 	invRepo := repository.NewInvestmentRepository(db)
 	wr := walletRepo.NewWalletRepository(db)
-	svc := service.NewInvestmentService(invRepo, wr, bus, logger)
+	ur := authRepo.NewUserRepository(db)
+	svc := service.NewInvestmentService(invRepo, wr, ur, bus, logger)
 	h := handler.NewInvestmentHandler(svc)
 
 	return &Module{Handler: h, Service: svc}

@@ -8,6 +8,8 @@ import (
 	"time"
 
 	"github.com/shopspring/decimal"
+	usermodel "github.com/sovereign-fund/sovereign/internal/modules/auth/model"
+	authRepo "github.com/sovereign-fund/sovereign/internal/modules/auth/repository"
 	"github.com/sovereign-fund/sovereign/internal/modules/investment/dto"
 	"github.com/sovereign-fund/sovereign/internal/modules/investment/model"
 	investRepo "github.com/sovereign-fund/sovereign/internal/modules/investment/repository"
@@ -31,11 +33,13 @@ func TestRedeemMarksInvestmentStoppingWithoutTouchingWallet(t *testing.T) {
 
 	invRepo := &stubInvestmentRepository{byID: map[string]*model.Investment{inv.ID: inv}}
 	walletRepo := &stubWalletRepository{}
+	uRepo := &stubUserRepo{}
 	bus := &recordingBus{}
 
 	svc := NewInvestmentService(
 		invRepo,
 		walletRepo,
+		uRepo,
 		bus,
 		slog.New(slog.NewTextHandler(io.Discard, nil)),
 	)
@@ -74,10 +78,12 @@ func TestRedeemMarksInvestmentStoppingWithoutTouchingWallet(t *testing.T) {
 type stubInvestmentRepository struct {
 	byID    map[string]*model.Investment
 	updated *model.Investment
+	created []*model.Investment
 }
 
-func (s *stubInvestmentRepository) Create(context.Context, *model.Investment) error {
-	panic("unexpected Create call")
+func (s *stubInvestmentRepository) Create(_ context.Context, inv *model.Investment) error {
+	s.created = append(s.created, inv)
+	return nil
 }
 
 func (s *stubInvestmentRepository) FindByID(_ context.Context, id string) (*model.Investment, error) {
@@ -118,6 +124,7 @@ var _ investRepo.InvestmentRepository = (*stubInvestmentRepository)(nil)
 type stubWalletRepository struct {
 	findCalls   int
 	updateCalls int
+	wallet      *walletModel.Wallet
 }
 
 func (s *stubWalletRepository) FindByUserID(context.Context, string) ([]walletModel.Wallet, error) {
@@ -126,7 +133,7 @@ func (s *stubWalletRepository) FindByUserID(context.Context, string) ([]walletMo
 
 func (s *stubWalletRepository) FindByUserIDAndCurrency(context.Context, string, string) (*walletModel.Wallet, error) {
 	s.findCalls++
-	return nil, nil
+	return s.wallet, nil
 }
 
 func (s *stubWalletRepository) FindOrCreate(context.Context, string, string) (*walletModel.Wallet, error) {
@@ -159,3 +166,79 @@ func (b *recordingBus) Publish(_ context.Context, event events.Event) {
 func (b *recordingBus) Subscribe(string, events.Handler) {}
 
 func (b *recordingBus) Shutdown() {}
+
+type stubUserRepo struct {
+	users map[string]*usermodel.User
+}
+
+func (s *stubUserRepo) FindByID(_ context.Context, id string) (*usermodel.User, error) {
+	if u, ok := s.users[id]; ok {
+		return u, nil
+	}
+	return &usermodel.User{ID: id}, nil
+}
+
+func (s *stubUserRepo) FindByEmail(context.Context, string) (*usermodel.User, error) {
+	panic("unexpected FindByEmail call")
+}
+
+func (s *stubUserRepo) FindByGoogleID(context.Context, string) (*usermodel.User, error) {
+	panic("unexpected FindByGoogleID call")
+}
+
+func (s *stubUserRepo) Create(context.Context, *usermodel.User) error {
+	panic("unexpected Create call")
+}
+
+func (s *stubUserRepo) Update(context.Context, *usermodel.User) error {
+	panic("unexpected Update call")
+}
+
+func (s *stubUserRepo) ExistsByEmail(context.Context, string) (bool, error) {
+	panic("unexpected ExistsByEmail call")
+}
+
+var _ authRepo.UserRepository = (*stubUserRepo)(nil)
+
+func TestCreate_AssignsProductTypeFromUser(t *testing.T) {
+	ctx := context.Background()
+	invRepo := &stubInvestmentRepository{}
+	wRepo := &stubWalletRepository{wallet: &walletModel.Wallet{
+		ID: "w1", UserID: "u1", Currency: "USDT",
+		Available: decimal.NewFromInt(500),
+	}}
+	uRepo := &stubUserRepo{users: map[string]*usermodel.User{
+		"u1": {ID: "u1", InvestmentType: "trading"},
+	}}
+	bus := &recordingBus{}
+	svc := NewInvestmentService(invRepo, wRepo, uRepo, bus, slog.New(slog.NewTextHandler(io.Discard, nil)))
+
+	resp, err := svc.Create(ctx, "u1", dto.CreateInvestmentRequest{Amount: "200", Currency: "USDT"})
+	if err != nil {
+		t.Fatalf("Create error = %v", err)
+	}
+	if resp == nil || resp.ProductType != "trading" {
+		t.Errorf("response.ProductType mismatch, resp=%+v", resp)
+	}
+	if len(invRepo.created) != 1 || invRepo.created[0].ProductType != "trading" {
+		t.Errorf("persisted product_type wrong: %+v", invRepo.created)
+	}
+}
+
+func TestCreate_DefaultsToArbitrageWhenUserHasNoType(t *testing.T) {
+	ctx := context.Background()
+	invRepo := &stubInvestmentRepository{}
+	wRepo := &stubWalletRepository{wallet: &walletModel.Wallet{
+		ID: "w1", UserID: "u1", Currency: "USDT",
+		Available: decimal.NewFromInt(500),
+	}}
+	uRepo := &stubUserRepo{users: map[string]*usermodel.User{
+		"u1": {ID: "u1", InvestmentType: ""},
+	}}
+	svc := NewInvestmentService(invRepo, wRepo, uRepo, &recordingBus{}, slog.New(slog.NewTextHandler(io.Discard, nil)))
+
+	resp, _ := svc.Create(ctx, "u1", dto.CreateInvestmentRequest{Amount: "200", Currency: "USDT"})
+	if resp == nil || resp.ProductType != "arbitrage" {
+		t.Errorf("ProductType = %v, want arbitrage", resp)
+	}
+}

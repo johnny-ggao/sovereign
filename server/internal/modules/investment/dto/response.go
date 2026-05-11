@@ -6,6 +6,7 @@ type InvestmentResponse struct {
 	ID             string          `json:"id"`
 	Amount         decimal.Decimal `json:"amount"`
 	Currency       string          `json:"currency"`
+	ProductType    string          `json:"product_type"`
 	Status         string          `json:"status"`
 	TotalReturn    decimal.Decimal `json:"total_return"`
 	PerformanceFee decimal.Decimal `json:"performance_fee"`

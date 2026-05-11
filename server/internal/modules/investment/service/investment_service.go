@@ -8,6 +8,7 @@ import (
 	"time"
 
 	"github.com/shopspring/decimal"
+	userRepo "github.com/sovereign-fund/sovereign/internal/modules/auth/repository"
 	"github.com/sovereign-fund/sovereign/internal/modules/investment/dto"
 	"github.com/sovereign-fund/sovereign/internal/modules/investment/model"
 	"github.com/sovereign-fund/sovereign/internal/modules/investment/repository"
@@ -29,6 +30,7 @@ type InvestmentService interface {
 type investmentService struct {
 	invRepo    repository.InvestmentRepository
 	walletRepo walletRepo.WalletRepository
+	userRepo   userRepo.UserRepository
 	eventBus   events.Bus
 	logger     *slog.Logger
 }
@@ -36,12 +38,14 @@ type investmentService struct {
 func NewInvestmentService(
 	invRepo repository.InvestmentRepository,
 	wr walletRepo.WalletRepository,
+	ur userRepo.UserRepository,
 	bus events.Bus,
 	logger *slog.Logger,
 ) InvestmentService {
 	return &investmentService{
 		invRepo:    invRepo,
 		walletRepo: wr,
+		userRepo:   ur,
 		eventBus:   bus,
 		logger:     logger,
 	}
@@ -80,11 +84,23 @@ func (s *investmentService) Create(ctx context.Context, userID string, req dto.C
 		return nil, apperr.Wrap(apperr.ErrInternal, err)
 	}
 
+	user, err := s.userRepo.FindByID(ctx, userID)
+	if err != nil {
+		// Roll back the just-deducted balance change.
+		_ = s.walletRepo.UpdateBalance(ctx, wallet.ID, wallet.Available, wallet.InOperation, wallet.Frozen)
+		return nil, apperr.Wrap(apperr.ErrInternal, err)
+	}
+	productType := user.InvestmentType
+	if productType == "" {
+		productType = model.ProductTypeArbitrage
+	}
+
 	inv := &model.Investment{
-		UserID:   userID,
-		Amount:   amount,
-		Currency: currency,
-		Status:   model.InvestStatusActive,
+		UserID:      userID,
+		Amount:      amount,
+		Currency:    currency,
+		Status:      model.InvestStatusActive,
+		ProductType: productType,
 	}
 
 	if err := s.invRepo.Create(ctx, inv); err != nil {
@@ -189,6 +205,7 @@ func toInvestmentResponse(inv *model.Investment) *dto.InvestmentResponse {
 		ID:             inv.ID,
 		Amount:         inv.Amount,
 		Currency:       inv.Currency,
+		ProductType:    inv.ProductType,
 		Status:         inv.Status,
 		TotalReturn:    inv.TotalReturn,
 		PerformanceFee: inv.PerformanceFee,
