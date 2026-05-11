@@ -413,13 +413,14 @@ func (s *authService) issueTokens(ctx context.Context, user *model.User, userAge
 
 func toUserProfile(user *model.User) *dto.UserProfile {
 	return &dto.UserProfile{
-		ID:           user.ID,
-		Email:        user.Email,
-		FullName:     user.FullName,
-		AvatarURL:    user.AvatarURL,
-		Phone:        user.Phone,
-		Language:     user.Language,
-		KYCStatus:    user.KYCStatus,
-		TwoFAEnabled: user.TwoFAEnabled,
+		ID:             user.ID,
+		Email:          user.Email,
+		FullName:       user.FullName,
+		AvatarURL:      user.AvatarURL,
+		Phone:          user.Phone,
+		Language:       user.Language,
+		KYCStatus:      user.KYCStatus,
+		TwoFAEnabled:   user.TwoFAEnabled,
+		InvestmentType: user.InvestmentType,
 	}
 }
