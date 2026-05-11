@@ -65,6 +65,31 @@ func RegisterRoutes(r *gin.RouterGroup, m *Module) {
 		m.TradeHandler.Delete,
 	)
 
+	// Trading trades (高频交易产品的交易明细)
+	tradingTrades := protected.Group("/trading-trades")
+	{
+		tradingTrades.GET("",
+			middleware.RequireRole(model.RoleSuperAdmin, model.RoleOperator, model.RoleViewer),
+			m.TradingTradeHandler.List,
+		)
+		tradingTrades.GET("/stats",
+			middleware.RequireRole(model.RoleSuperAdmin, model.RoleOperator, model.RoleViewer),
+			m.TradingTradeHandler.Stats,
+		)
+		tradingTrades.GET("/template",
+			middleware.RequireRole(model.RoleSuperAdmin, model.RoleOperator),
+			m.TradingTradeHandler.DownloadTemplate,
+		)
+		tradingTrades.POST("/import",
+			middleware.RequireRole(model.RoleSuperAdmin, model.RoleOperator),
+			m.TradingTradeHandler.Import,
+		)
+		tradingTrades.DELETE("/:id",
+			middleware.RequireRole(model.RoleSuperAdmin),
+			m.TradingTradeHandler.Delete,
+		)
+	}
+
 	// Transactions
 	protected.GET("/transactions",
 		middleware.RequireRole(model.RoleSuperAdmin, model.RoleOperator, model.RoleViewer),

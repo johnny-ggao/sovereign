@@ -40,9 +40,9 @@ func TestParseImportRowsReturnsTradesAndRowErrors(t *testing.T) {
 		{"BTC/USDT", "", "Upbit", "80000", "81000", "1.00", "1.25", "1000", "5"},
 	})
 
-	trades, rowErrors, err := parseImportRows(bytes.NewReader(workbook.Bytes()))
+	trades, rowErrors, err := ParseImportRows(bytes.NewReader(workbook.Bytes()))
 	if err != nil {
-		t.Fatalf("parseImportRows() error = %v", err)
+		t.Fatalf("ParseImportRows() error = %v", err)
 	}
 
 	if len(trades) != 1 {

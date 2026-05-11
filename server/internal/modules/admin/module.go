@@ -21,6 +21,7 @@ type Module struct {
 	UserHandler           *handler.UserHandler
 	DashboardHandler      *handler.DashboardHandler
 	TradeHandler          *handler.TradeHandler
+	TradingTradeHandler   *handler.TradingTradeHandler
 	TransactionHandler    *handler.TransactionHandler
 	WithdrawReviewHandler *handler.WithdrawReviewHandler
 	UserProductHandler    *handler.UserProductHandler
@@ -46,6 +47,7 @@ func NewModule(
 	auditSvc := service.NewAuditService(db)
 	dashboardSvc := service.NewDashboardService(db, logger)
 	tradeSvc := service.NewTradeService(db)
+	tradingTradeSvc := service.NewTradingTradeService(db)
 	transactionSvc := service.NewTransactionService(db)
 
 	withdrawReviewSvc := service.NewWithdrawReviewService(
@@ -64,6 +66,7 @@ func NewModule(
 		UserHandler:           handler.NewUserHandler(userSvc, auditSvc),
 		DashboardHandler:      handler.NewDashboardHandler(dashboardSvc),
 		TradeHandler:          handler.NewTradeHandler(tradeSvc, auditSvc),
+		TradingTradeHandler:   handler.NewTradingTradeHandler(tradingTradeSvc, auditSvc),
 		TransactionHandler:    handler.NewTransactionHandler(transactionSvc),
 		WithdrawReviewHandler: handler.NewWithdrawReviewHandler(withdrawReviewSvc, auditSvc),
 		UserProductHandler:    handler.NewUserProductHandler(userProductSvc, auditSvc),

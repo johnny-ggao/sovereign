@@ -101,7 +101,7 @@ func (s *tradeService) DownloadTemplate(_ context.Context) (*excelize.File, erro
 }
 
 func (s *tradeService) ImportFromExcel(ctx context.Context, file multipart.File) (int, []string, error) {
-	trades, rowErrors, err := parseImportRows(file)
+	trades, rowErrors, err := ParseImportRows(file)
 	if err != nil {
 		return 0, nil, err
 	}
@@ -206,7 +206,7 @@ func (s *tradeService) Delete(ctx context.Context, tradeID string) error {
 	return nil
 }
 
-func parseImportRows(reader io.Reader) ([]trademodel.Trade, []string, error) {
+func ParseImportRows(reader io.Reader) ([]trademodel.Trade, []string, error) {
 	content, err := io.ReadAll(reader)
 	if err != nil {
 		return nil, nil, fmt.Errorf("read excel file: %w", err)
@@ -227,7 +227,7 @@ func parseImportRows(reader io.Reader) ([]trademodel.Trade, []string, error) {
 	trades := make([]trademodel.Trade, 0, len(rows))
 	rowErrors := make([]string, 0)
 	for index, row := range rows[1:] {
-		trade, rowErr := parseTradeRow(row)
+		trade, rowErr := ParseTradeRow(row)
 		if rowErr != nil {
 			rowErrors = append(rowErrors, fmt.Sprintf("第%d行: %s", index+2, rowErr.Error()))
 			continue
@@ -237,7 +237,7 @@ func parseImportRows(reader io.Reader) ([]trademodel.Trade, []string, error) {
 	return trades, rowErrors, nil
 }
 
-func parseTradeRow(row []string) (*trademodel.Trade, error) {
+func ParseTradeRow(row []string) (*trademodel.Trade, error) {
 	pair, err := requiredCell(row, 0, "交易对")
 	if err != nil {
 		return nil, err
