@@ -45,6 +45,7 @@ declare namespace API {
     is_active: boolean;
     balance: string;
     created_at: string;
+    investment_type?: string;
   }
 
   interface UserDetail {
@@ -59,6 +60,7 @@ declare namespace API {
     recent_transactions: TransactionInfo[];
     investments: InvestmentInfo[];
     recent_settlements: SettlementInfo[];
+    investment_type?: string;
   }
 
   interface WalletInfo {

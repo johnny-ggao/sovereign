@@ -22,6 +22,7 @@ import {
   resetUser2FA,
   adjustBalance,
 } from '@/services/api';
+import InvestmentTypeCard from './InvestmentTypeCard';
 
 const walletColumns: ColumnsType<API.WalletInfo> = [
   { title: '币种', dataIndex: 'currency', key: 'currency' },
@@ -195,6 +196,13 @@ const UserDetailPage: React.FC = () => {
               </Descriptions.Item>
             </Descriptions>
           </Card>
+
+          <InvestmentTypeCard
+            userId={id!}
+            currentType={user.investment_type ?? 'arbitrage'}
+            canEdit={access.isSuperAdmin}
+            onChanged={fetchUser}
+          />
 
           <Tabs
             items={[

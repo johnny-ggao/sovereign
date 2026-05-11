@@ -263,3 +263,46 @@ export async function retryWithdrawal(id: string) {
     method: 'POST',
   });
 }
+
+export interface UserProductChangeLog {
+  id: string;
+  user_id: string;
+  from_type: string;
+  to_type: string;
+  admin_id: string;
+  admin_email: string;
+  reason: string;
+  created_at: string;
+}
+
+export async function changeUserInvestmentType(
+  id: string,
+  type: 'arbitrage' | 'trading',
+  reason: string,
+) {
+  return request<API.ApiResponse<{ message: string }>>(
+    `/users/${id}/investment-type`,
+    { method: 'POST', data: { type, reason } },
+  );
+}
+
+export async function getUserProductChanges(id: string) {
+  return request<API.ApiResponse<UserProductChangeLog[]>>(
+    `/users/${id}/product-changes`,
+    { method: 'GET' },
+  );
+}
+
+export async function bulkChangeUserInvestmentType(
+  user_ids: string[],
+  type: 'arbitrage' | 'trading',
+  reason: string,
+) {
+  return request<API.ApiResponse<{
+    succeeded: string[];
+    failed: { user_id: string; reason: string }[];
+  }>>(`/users/bulk-investment-type`, {
+    method: 'POST',
+    data: { user_ids, type, reason },
+  });
+}
