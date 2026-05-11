@@ -38,3 +38,13 @@ screenshot
 .firebase
 
 build
+
+# TypeScript transpile artifacts (we use `max build` / `max dev`, not `tsc --emit`)
+src/**/*.d.ts
+src/**/*.js
+!src/**/*.config.js
+config/**/*.d.ts
+config/**/*.js
+!config/config.ts
+jest.config.d.ts
+jest.config.js
