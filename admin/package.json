@@ -4,6 +4,7 @@
   "private": true,
   "description": "An out-of-box UI solution for enterprise applications",
   "repository": "git@github.com:ant-design/ant-design-pro.git",
+  "packageManager": "pnpm@10.18.0",
   "scripts": {
     "analyze": "cross-env ANALYZE=1 max build",
     "biome:lint": "npx @biomejs/biome lint",
