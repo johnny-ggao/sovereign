@@ -24,28 +24,30 @@ type AdminResponse struct {
 }
 
 type UserListItem struct {
-	ID        string `json:"id"`
-	Email     string `json:"email"`
-	FullName  string `json:"full_name"`
-	Phone     string `json:"phone"`
-	Language  string `json:"language"`
-	IsActive  bool   `json:"is_active"`
-	Balance   string `json:"balance"`
-	CreatedAt string `json:"created_at"`
+	ID             string `json:"id"`
+	Email          string `json:"email"`
+	FullName       string `json:"full_name"`
+	Phone          string `json:"phone"`
+	Language       string `json:"language"`
+	IsActive       bool   `json:"is_active"`
+	Balance        string `json:"balance"`
+	InvestmentType string `json:"investment_type"`
+	CreatedAt      string `json:"created_at"`
 }
 
 type UserDetail struct {
-	ID           string            `json:"id"`
-	Email        string            `json:"email"`
-	FullName     string            `json:"full_name"`
-	Phone        string            `json:"phone"`
-	Language     string            `json:"language"`
-	IsActive     bool              `json:"is_active"`
-	CreatedAt    string            `json:"created_at"`
-	Wallets      []WalletInfo      `json:"wallets"`
-	Transactions []TransactionInfo `json:"recent_transactions"`
-	Investments  []InvestmentInfo  `json:"investments"`
-	Settlements  []SettlementInfo  `json:"recent_settlements"`
+	ID             string            `json:"id"`
+	Email          string            `json:"email"`
+	FullName       string            `json:"full_name"`
+	Phone          string            `json:"phone"`
+	Language       string            `json:"language"`
+	IsActive       bool              `json:"is_active"`
+	InvestmentType string            `json:"investment_type"`
+	CreatedAt      string            `json:"created_at"`
+	Wallets        []WalletInfo      `json:"wallets"`
+	Transactions   []TransactionInfo `json:"recent_transactions"`
+	Investments    []InvestmentInfo  `json:"investments"`
+	Settlements    []SettlementInfo  `json:"recent_settlements"`
 }
 
 type WalletInfo struct {

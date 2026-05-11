@@ -86,6 +86,12 @@ func RegisterRoutes(r *gin.RouterGroup, m *Module) {
 		withdrawals.POST("/:id/retry", m.WithdrawReviewHandler.Retry)
 	}
 
+	// Bulk user product type change (sibling to /users group to avoid :id route collision)
+	protected.POST("/users/bulk-investment-type",
+		middleware.RequireRole(model.RoleSuperAdmin, model.RoleOperator),
+		m.UserProductHandler.BulkChange,
+	)
+
 	// User management
 	users := protected.Group("/users")
 	{
@@ -120,6 +126,14 @@ func RegisterRoutes(r *gin.RouterGroup, m *Module) {
 		users.POST("/:id/adjust-balance",
 			middleware.RequireRole(model.RoleSuperAdmin),
 			m.UserHandler.AdjustBalance,
+		)
+		users.POST("/:id/investment-type",
+			middleware.RequireRole(model.RoleSuperAdmin, model.RoleOperator),
+			m.UserProductHandler.Change,
+		)
+		users.GET("/:id/product-changes",
+			middleware.RequireRole(model.RoleSuperAdmin, model.RoleOperator),
+			m.UserProductHandler.History,
 		)
 	}
 

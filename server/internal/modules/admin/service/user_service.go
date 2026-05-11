@@ -62,14 +62,15 @@ func (s *userService) List(ctx context.Context, query dto.UserListQuery) ([]dto.
 	for i, u := range users {
 		balance := s.calcUserBalance(ctx, u.ID)
 		items[i] = dto.UserListItem{
-			ID:        u.ID,
-			Email:     u.Email,
-			FullName:  u.FullName,
-			Phone:     u.Phone,
-			Language:  u.Language,
-			IsActive:  true,
-			Balance:   balance.StringFixed(2),
-			CreatedAt: u.CreatedAt.Format(time.RFC3339),
+			ID:             u.ID,
+			Email:          u.Email,
+			FullName:       u.FullName,
+			Phone:          u.Phone,
+			Language:       u.Language,
+			IsActive:       true,
+			Balance:        balance.StringFixed(2),
+			InvestmentType: u.InvestmentType,
+			CreatedAt:      u.CreatedAt.Format(time.RFC3339),
 		}
 	}
 
@@ -155,17 +156,18 @@ func (s *userService) Detail(ctx context.Context, userID string) (*dto.UserDetai
 	}
 
 	return &dto.UserDetail{
-		ID:           user.ID,
-		Email:        user.Email,
-		FullName:     user.FullName,
-		Phone:        user.Phone,
-		Language:     user.Language,
-		IsActive:     true,
-		CreatedAt:    user.CreatedAt.Format(time.RFC3339),
-		Wallets:      walletInfos,
-		Transactions: txInfos,
-		Investments:  investInfos,
-		Settlements:  settleInfos,
+		ID:             user.ID,
+		Email:          user.Email,
+		FullName:       user.FullName,
+		Phone:          user.Phone,
+		Language:       user.Language,
+		IsActive:       true,
+		InvestmentType: user.InvestmentType,
+		CreatedAt:      user.CreatedAt.Format(time.RFC3339),
+		Wallets:        walletInfos,
+		Transactions:   txInfos,
+		Investments:    investInfos,
+		Settlements:    settleInfos,
 	}, nil
 }
 

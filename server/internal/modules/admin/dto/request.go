@@ -90,3 +90,14 @@ type WithdrawReviewListQuery struct {
 type RejectWithdrawRequest struct {
 	Reason string `json:"reason" binding:"required,min=2,max=500"`
 }
+
+type ChangeUserProductRequest struct {
+	Type   string `json:"type" binding:"required,oneof=arbitrage trading"`
+	Reason string `json:"reason" binding:"required,min=5,max=500"`
+}
+
+type BulkChangeUserProductRequest struct {
+	UserIDs []string `json:"user_ids" binding:"required,min=1,max=200,dive,uuid"`
+	Type    string   `json:"type" binding:"required,oneof=arbitrage trading"`
+	Reason  string   `json:"reason" binding:"required,min=5,max=500"`
+}

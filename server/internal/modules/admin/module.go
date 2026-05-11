@@ -7,6 +7,7 @@ import (
 	"github.com/sovereign-fund/sovereign/internal/modules/admin/handler"
 	"github.com/sovereign-fund/sovereign/internal/modules/admin/repository"
 	"github.com/sovereign-fund/sovereign/internal/modules/admin/service"
+	authrepo "github.com/sovereign-fund/sovereign/internal/modules/auth/repository"
 	walletrepo "github.com/sovereign-fund/sovereign/internal/modules/wallet/repository"
 	"github.com/sovereign-fund/sovereign/internal/shared/events"
 	"github.com/sovereign-fund/sovereign/pkg/cobo"
@@ -22,6 +23,7 @@ type Module struct {
 	TradeHandler          *handler.TradeHandler
 	TransactionHandler    *handler.TransactionHandler
 	WithdrawReviewHandler *handler.WithdrawReviewHandler
+	UserProductHandler    *handler.UserProductHandler
 	AuditService          service.AuditService
 	AdminRepo             repository.AdminRepository
 	JWTSecret             string
@@ -51,6 +53,10 @@ func NewModule(
 		walletRepo, txRepo, coboProvider, bus, logger,
 	)
 
+	authUserRepo := authrepo.NewUserRepository(db)
+	userProductChangeLogRepo := repository.NewUserProductChangeLogRepository(db)
+	userProductSvc := service.NewUserProductService(authUserRepo, userProductChangeLogRepo)
+
 	return &Module{
 		AuthHandler:           handler.NewAuthHandler(authSvc),
 		AdminUserHandler:      handler.NewAdminUserHandler(adminUserSvc, auditSvc),
@@ -60,6 +66,7 @@ func NewModule(
 		TradeHandler:          handler.NewTradeHandler(tradeSvc, auditSvc),
 		TransactionHandler:    handler.NewTransactionHandler(transactionSvc),
 		WithdrawReviewHandler: handler.NewWithdrawReviewHandler(withdrawReviewSvc, auditSvc),
+		UserProductHandler:    handler.NewUserProductHandler(userProductSvc, auditSvc),
 		AuditService:          auditSvc,
 		AdminRepo:             repo,
 		JWTSecret:             cfg.JWTSecret,
