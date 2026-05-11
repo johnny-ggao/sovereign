@@ -24,6 +24,7 @@ type UserTrade struct {
 	PnL          decimal.Decimal `gorm:"column:pnl;type:decimal(28,18);not null" json:"pnl"`
 	Fee          decimal.Decimal `gorm:"type:decimal(28,18);default:0" json:"fee"`
 	Ratio        decimal.Decimal `gorm:"type:decimal(10,8);not null" json:"ratio"`
+	ProductType  string          `gorm:"type:varchar(20);not null;default:arbitrage" json:"product_type"`
 	ExecutedAt   time.Time       `gorm:"not null" json:"executed_at"`
 	CreatedAt    time.Time       `gorm:"autoCreateTime" json:"created_at"`
 }

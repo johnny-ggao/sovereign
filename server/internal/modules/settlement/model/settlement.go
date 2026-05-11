@@ -20,6 +20,7 @@ type Settlement struct {
 	TradeCount     int             `gorm:"not null;default:0" json:"trade_count"`
 	AvgPremiumPct  decimal.Decimal `gorm:"type:decimal(8,4);default:0" json:"avg_premium_pct"`
 	ReportURL      string          `gorm:"type:varchar(500)" json:"report_url"`
+	ProductType    string          `gorm:"type:varchar(20);not null;default:arbitrage" json:"product_type"`
 	SettledAt      time.Time       `gorm:"not null" json:"settled_at"`
 	CreatedAt      time.Time       `gorm:"autoCreateTime" json:"created_at"`
 }
