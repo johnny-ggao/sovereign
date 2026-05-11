@@ -1,14 +1,17 @@
 import { PageContainer, ProTable } from '@ant-design/pro-components';
 import type { ProColumns, ActionType } from '@ant-design/pro-components';
 import { history } from '@umijs/max';
-import { App, Button, Typography } from 'antd';
-import React, { useRef } from 'react';
+import { App, Button, Tag, Typography } from 'antd';
+import React, { useRef, useState } from 'react';
 import { getUsers, resetUserPassword } from '@/services/api';
 import dayjs from 'dayjs';
+import BulkTagModal from './BulkTagModal';
 
 const Users: React.FC = () => {
   const actionRef = useRef<ActionType>();
   const { message, modal } = App.useApp();
+  const [selectedKeys, setSelectedKeys] = useState<string[]>([]);
+  const [bulkOpen, setBulkOpen] = useState(false);
 
   const handleResetPassword = (record: API.UserListItem) => {
     modal.confirm({
@@ -48,6 +51,20 @@ const Users: React.FC = () => {
       render: (_, record) => `$${record.balance}`,
     },
     {
+      title: '投资类型',
+      dataIndex: 'investment_type',
+      width: 100,
+      valueEnum: {
+        arbitrage: { text: '套利', status: 'Default' },
+        trading: { text: '交易', status: 'Processing' },
+      },
+      render: (_, record) => {
+        const t = (record as any).investment_type || 'arbitrage';
+        if (t === 'trading') return <Tag color="gold">交易</Tag>;
+        return <Tag color="blue">套利</Tag>;
+      },
+    },
+    {
       title: '注册时间',
       dataIndex: 'created_at',
       search: false,
@@ -74,6 +91,21 @@ const Users: React.FC = () => {
         actionRef={actionRef}
         rowKey="id"
         columns={columns}
+        rowSelection={{
+          selectedRowKeys: selectedKeys,
+          onChange: (keys) => setSelectedKeys(keys as string[]),
+          preserveSelectedRowKeys: false,
+        }}
+        toolBarRender={() => [
+          <Button
+            key="bulk-tag"
+            type="primary"
+            disabled={selectedKeys.length === 0}
+            onClick={() => setBulkOpen(true)}
+          >
+            批量打标 {selectedKeys.length > 0 ? `(${selectedKeys.length})` : ''}
+          </Button>,
+        ]}
         request={async (params) => {
           const res = await getUsers({
             page: params.current,
@@ -87,6 +119,16 @@ const Users: React.FC = () => {
           };
         }}
         pagination={{ defaultPageSize: 20 }}
+      />
+      <BulkTagModal
+        open={bulkOpen}
+        selectedUserIds={selectedKeys}
+        onClose={() => setBulkOpen(false)}
+        onDone={() => {
+          setBulkOpen(false);
+          setSelectedKeys([]);
+          actionRef.current?.reload();
+        }}
       />
     </PageContainer>
   );
