@@ -294,14 +294,15 @@ func (s *settingsService) UpdateLanguage(ctx context.Context, userID string, req
 
 func toProfileResponse(u *authModel.User) *dto.ProfileResponse {
 	return &dto.ProfileResponse{
-		ID:           u.ID,
-		Email:        u.Email,
-		FullName:     u.FullName,
-		Phone:        u.Phone,
-		Language:     u.Language,
-		KYCStatus:    u.KYCStatus,
-		TwoFAEnabled: u.TwoFAEnabled,
-		CreatedAt:    u.CreatedAt.Format(time.RFC3339),
+		ID:             u.ID,
+		Email:          u.Email,
+		FullName:       u.FullName,
+		Phone:          u.Phone,
+		Language:       u.Language,
+		KYCStatus:      u.KYCStatus,
+		TwoFAEnabled:   u.TwoFAEnabled,
+		InvestmentType: u.InvestmentType,
+		CreatedAt:      u.CreatedAt.Format(time.RFC3339),
 	}
 }
 

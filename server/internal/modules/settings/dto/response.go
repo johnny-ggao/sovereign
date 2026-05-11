@@ -1,14 +1,15 @@
 package dto
 
 type ProfileResponse struct {
-	ID           string `json:"id"`
-	Email        string `json:"email"`
-	FullName     string `json:"full_name"`
-	Phone        string `json:"phone"`
-	Language     string `json:"language"`
-	KYCStatus    string `json:"kyc_status"`
-	TwoFAEnabled bool   `json:"two_fa_enabled"`
-	CreatedAt    string `json:"created_at"`
+	ID             string `json:"id"`
+	Email          string `json:"email"`
+	FullName       string `json:"full_name"`
+	Phone          string `json:"phone"`
+	Language       string `json:"language"`
+	KYCStatus      string `json:"kyc_status"`
+	TwoFAEnabled   bool   `json:"two_fa_enabled"`
+	InvestmentType string `json:"investment_type"`
+	CreatedAt      string `json:"created_at"`
 }
 
 type Setup2FAResponse struct {
